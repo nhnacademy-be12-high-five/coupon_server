@@ -15,11 +15,10 @@ public class CouponPolicyCategory {
     @Column(name = "coupon_policy_category_id")
     private Long id;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "category_id")
-    private Long category;
+    @Column(name = "category_id")
+    private Long categoryId;
 
-//    @ManyToOne
-//    @JoinColumn(name = "policy_id")
-    private Long policyId;
+    @ManyToOne
+    @JoinColumn(name = "policy_id")
+    private CouponPolicy policy;
 }

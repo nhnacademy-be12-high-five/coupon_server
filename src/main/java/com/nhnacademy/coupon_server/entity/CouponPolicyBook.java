@@ -18,6 +18,6 @@ public class CouponPolicyBook {
     @ManyToOne(fetch = FetchType.LAZY)
     private CouponPolicy couponPolicyId;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(name = "book_id")
     private Long bookId;
 }
