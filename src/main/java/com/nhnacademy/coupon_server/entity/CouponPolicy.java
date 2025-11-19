@@ -12,7 +12,7 @@ import java.util.List;
 @Entity
 @Table(name = "coupon_policy")
 @Getter
-//@Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CouponPolicy {
