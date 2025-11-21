@@ -27,9 +27,4 @@ public interface CouponPolicyAdminDocs {
             @Valid @RequestBody(description = "쿠폰 정책 생성 요청 정보 (name)", required = true, content = @Content(schema = @Schema(implementation = CouponPolicyRequestDto.class)))
             @org.springframework.web.bind.annotation.RequestBody CouponPolicyRequestDto couponPolicyRequestDto
     );
-
-    @Operation(summary = "쿠폰 정책 전체 조회", description = "생성된 쿠폰 정책리스트를 조회합니다.")
-    @ApiResponse(responseCode = "200", description = "쿠폰 정책리스트 조회 성공")
-    @GetMapping
-    ResponseEntity<List<CouponPolicyResponseDto>> getAllPolicies();
 }

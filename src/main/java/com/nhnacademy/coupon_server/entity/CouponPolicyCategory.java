@@ -6,13 +6,13 @@ import lombok.*;
 @Entity
 @Table(name = "coupon_policy_category")
 @Getter
-@Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CouponPolicyCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "coupon_policy_category_id")
+    @Column(name = "id")
     private Long id;
 
     @Column(name = "category_id")

@@ -5,51 +5,42 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.security.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "member_coupon")
 @Getter
-//@Setter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 public class MemberCoupon {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "member_coupon_id")
+    @Column(name = "id")
     private Long id;
 
     @Setter
-    @Column(name = "issue_count", nullable = false)
-    private Long issueCount;
-
-    @Setter
-    @Column(name = "Status")
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
 
     @Setter
-    @Column(name = "issue_date")
-    private Timestamp issueDate;
+    @Column(name = "issue_at", nullable = false)
+    private LocalDateTime issueAt;
 
     @Setter
-    @Column(name = "valid_from_date")
-    private Timestamp validFromDate;
+    @Column(name = "used_at")
+    private LocalDateTime usedAt;
 
-    @Setter
-    @Column(name = "valid_to_date")
-    private Timestamp validToDate;
-
-    @Setter
-    @Column(name = "used_date")
-    private Timestamp usedDate;
-
-    @Column(name = "user_id")
-    private Long userId;
+    @Column(name = "expired_at")
+    private LocalDateTime expiredAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "coupon_policy_id")
-    private CouponPolicy couponPolicy;
+    @JoinColumn(name = "coupon_id", nullable = false)
+    private Coupon coupon;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "order_id")
     private Long orderId;

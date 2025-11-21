@@ -23,10 +23,4 @@ public class CouponPolicyAdminController implements CouponPolicyAdminDocs {
         CouponPolicyResponseDto responseDto = couponPolicyService.create(couponPolicyRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
-
-    @GetMapping
-    public ResponseEntity<List<CouponPolicyResponseDto>> getAllPolicies() {
-        List<CouponPolicyResponseDto> policies = couponPolicyService.findAll();
-        return ResponseEntity.ok(policies);
-    }
 }

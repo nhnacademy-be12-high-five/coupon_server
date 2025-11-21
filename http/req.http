@@ -8,8 +8,10 @@ Content-Type: application/json
     "comment": "BIRTHDAY",
     "discountType": "PERCENTAGE",
     "discountValue": 10,
-    "minPayValue": 50000,
-    "maxDiscountValue": 10000
+    "minOrderValue": 50000,
+    "maxDiscountValue": 10000,
+    "targetBookIds": [],
+    "targetCategoryIds": []
 }
 
 

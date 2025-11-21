@@ -3,6 +3,10 @@ package com.nhnacademy.coupon_server.service.impl;
 import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
 import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
+import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
+import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
+import com.nhnacademy.coupon_server.repository.CouponPolicyBookRepository;
+import com.nhnacademy.coupon_server.repository.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CouponPolicyServiceImpl implements CouponPolicyService {
     private final CouponPolicyRepository couponPolicyRepository;
+    private final CouponPolicyBookRepository couponPolicyBookRepository;
+    private final CouponPolicyCategoryRepository couponPolicyCategoryRepository;
 
     @Override
     @Transactional
@@ -30,20 +36,33 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .comment(couponPolicyRequestDto.getComment())
                 .discountType(couponPolicyRequestDto.getDiscountType())
                 .discountValue(couponPolicyRequestDto.getDiscountValue())
-                .minPayValue(couponPolicyRequestDto.getMinPayValue())
+                .minOrderValue(couponPolicyRequestDto.getMinOrderValue())
                 .maxDiscountValue(couponPolicyRequestDto.getMaxDiscountValue())
                 .build();
 
         CouponPolicy savedPolicy = couponPolicyRepository.save(newPolicy);
+        // 도서 적용 범위 저장 로직
+        if (couponPolicyRequestDto.getTargetBookIds() != null && !couponPolicyRequestDto.getTargetBookIds().isEmpty()) {
+            List<CouponPolicyBook> bookLinks = couponPolicyRequestDto.getTargetBookIds().stream()
+                    .map(bookId -> CouponPolicyBook.builder()
+                            .couponPolicy(savedPolicy)
+                            .bookId(bookId)
+                            .build())
+                    .toList();
+            couponPolicyBookRepository.saveAll(bookLinks);
+            savedPolicy.setUsableBooks(bookLinks);
+        }
+        // 카테고리 적용 범위 저장 로직
+        if (couponPolicyRequestDto.getTargetCategoryIds() != null && !couponPolicyRequestDto.getTargetCategoryIds().isEmpty()) {
+            List<CouponPolicyCategory> categoryLinks = couponPolicyRequestDto.getTargetCategoryIds().stream()
+                    .map(categoryId -> CouponPolicyCategory.builder()
+                            .couponPolicy(savedPolicy)
+                            .categoryId(categoryId)
+                            .build())
+                    .toList();
+            couponPolicyCategoryRepository.saveAll(categoryLinks);
+            savedPolicy.setUsableCategories(categoryLinks);
+        }
         return CouponPolicyResponseDto.fromEntity(savedPolicy);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<CouponPolicyResponseDto> findAll() {
-        log.info("Fetching all coupon policies");
-        return couponPolicyRepository.findAll().stream()
-                .map(CouponPolicyResponseDto::fromEntity)
-                .collect(Collectors.toList());
     }
 }
