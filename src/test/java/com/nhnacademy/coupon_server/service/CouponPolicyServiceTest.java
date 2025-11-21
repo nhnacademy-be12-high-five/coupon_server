@@ -158,4 +158,26 @@ class CouponPolicyServiceTest {
         verify(couponPolicyRepository, times(1)).findById(id);
     }
 
+    @Test
+    @DisplayName("쿠폰 정책 삭제 성공")
+    void testDeleteSuccess(){
+        Long id = 1L;
+        when(couponPolicyRepository.existsById(id)).thenReturn(true);
+        doNothing().when(couponPolicyRepository).deleteById(id);
+
+        couponPolicyService.deleteById(id);
+
+        verify(couponPolicyRepository, times(1)).existsById(id);
+        verify(couponPolicyRepository, times(1)).deleteById(id);
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 삭제 실패 - 존재하지 않는 ID")
+    void testDeleteFailureNotFound(){
+        Long id = 999L;
+        when(couponPolicyRepository.existsById(id)).thenReturn(false);
+
+        Assertions.assertThrows(EntityNotFoundException.class, () -> couponPolicyService.deleteById(id));
+        verify(couponPolicyRepository, never()).deleteById(id);
+    }
 }
