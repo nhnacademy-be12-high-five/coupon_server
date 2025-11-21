@@ -15,4 +15,6 @@ public interface CouponPolicyService {
     // 쿠폰 정책 단건 조회
     CouponPolicyResponseDto findById(Long id);
 
+    // 쿠폰 정책 삭제
+    void deleteById(Long id);
 }

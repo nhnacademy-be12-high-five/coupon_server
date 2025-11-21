@@ -86,4 +86,14 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         return CouponPolicyResponseDto.fromEntity(policy);
     }
 
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        log.info("쿠폰 정책 삭제 요청 - ID -> {}", id);
+        if (!couponPolicyRepository.existsById(id)) {
+            throw new EntityNotFoundException("쿠폰 정책을 찾을 수 없습니다.");
+        }
+
+        couponPolicyRepository.deleteById(id);
+    }
 }
