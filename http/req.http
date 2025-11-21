@@ -4,7 +4,7 @@ POST http://localhost:8080/admin/coupon-policy
 Content-Type: application/json
 
 {
-    "name": "5월 생일 축하 10% 할인",
+    "name": "6월 생일 축하 10% 할인",
     "comment": "BIRTHDAY",
     "discountType": "PERCENTAGE",
     "discountValue": 10,
@@ -16,4 +16,5 @@ Content-Type: application/json
 
 
 ### 쿠폰 정책 조회
-GET http://localhost:8080
+GET http://localhost:8080/admin/coupon-policy
+Content-Type: application/json

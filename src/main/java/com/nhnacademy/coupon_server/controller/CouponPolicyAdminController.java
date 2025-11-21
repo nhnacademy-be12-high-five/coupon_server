@@ -6,21 +6,39 @@ import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.parsers.ReturnTypeParser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/admin/coupon-policy")
 public class CouponPolicyAdminController implements CouponPolicyAdminDocs {
     private final CouponPolicyService couponPolicyService;
 
-    @PostMapping
+    @Override
     public ResponseEntity<CouponPolicyResponseDto> createPolicy(@Valid @RequestBody CouponPolicyRequestDto couponPolicyRequestDto) {
         CouponPolicyResponseDto responseDto = couponPolicyService.create(couponPolicyRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
+
+    @Override
+    public ResponseEntity<List<CouponPolicyResponseDto>> getAllCouponPolicies() {
+        log.info("관리자 쿠폰 정책 전체 조회 요청 수신");
+        List<CouponPolicyResponseDto> policies = couponPolicyService.findAll();
+        return ResponseEntity.ok(policies);
+    }
+
+    @Override
+    public ResponseEntity<CouponPolicyResponseDto> getCouponPolicy(@PathVariable Long couponPolicyId) {
+        log.info("관리자 쿠폰 정책 단건 조회 요청 - ID -> {}", couponPolicyId);
+        CouponPolicyResponseDto responseDto = couponPolicyService.findById(couponPolicyId);
+        return ResponseEntity.ok(responseDto);
+    }
+
 }

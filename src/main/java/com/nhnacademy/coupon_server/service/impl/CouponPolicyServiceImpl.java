@@ -9,6 +9,7 @@ import com.nhnacademy.coupon_server.repository.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,4 +66,24 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         }
         return CouponPolicyResponseDto.fromEntity(savedPolicy);
     }
+
+    @Override
+    public List<CouponPolicyResponseDto> findAll() {
+        log.info("모든 쿠폰 정책 조회 요청");
+
+        List<CouponPolicy> couponPolicies = couponPolicyRepository.findAll();
+
+        return couponPolicies.stream()
+                .map(CouponPolicyResponseDto::fromEntity)
+                .toList();
+    }
+
+    @Override
+    public CouponPolicyResponseDto findById(Long id) {
+        log.info("쿠폰 정책 단건 조회 요청 - ID -> {}", id);
+        CouponPolicy policy = couponPolicyRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+        return CouponPolicyResponseDto.fromEntity(policy);
+    }
+
 }
