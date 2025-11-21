@@ -9,6 +9,7 @@ import com.nhnacademy.coupon_server.repository.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponPolicyServiceImpl;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -99,6 +101,61 @@ class CouponPolicyServiceTest {
 
         Assertions.assertNotNull(responseDto);
         Assertions.assertEquals(1L, responseDto.getId());
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 전체 조회 성공")
+    void testFindAllSuccess(){
+        CouponPolicy policy1 = CouponPolicy.builder()
+                .id(1L)
+                .name("정책1")
+                .comment(Comment.WELCOME)
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .build();
+        CouponPolicy policy2 = CouponPolicy.builder()
+                .id(2L)
+                .name("정책2")
+                .comment(Comment.EVENT)
+                .discountType(DiscountType.PERCENTAGE)
+                .discountValue(10L)
+                .build();
+
+        when(couponPolicyRepository.findAll()).thenReturn(List.of(policy1, policy2));
+        List<CouponPolicyResponseDto> responseDtoList = couponPolicyService.findAll();
+        Assertions.assertNotNull(responseDtoList);
+        Assertions.assertEquals(2, responseDtoList.size());
+
+        Assertions.assertEquals("정책1", responseDtoList.get(0).getName());
+        Assertions.assertEquals("정책2", responseDtoList.get(1).getName());
+
+        verify(couponPolicyRepository, times(1)).findAll();
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 단건 조회 성공")
+    void testFindByIdSuccess(){
+        Long id = 1L;
+        when(couponPolicyRepository.findById(id)).thenReturn(Optional.of(mockPolicy));
+
+        CouponPolicyResponseDto responseDto = couponPolicyService.findById(id);
+
+        Assertions.assertNotNull(responseDto);
+        Assertions.assertEquals(id, responseDto.getId());
+        Assertions.assertEquals(mockPolicy.getName(), responseDto.getName());
+
+        verify(couponPolicyRepository, times(1)).findById(id);
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책  단건 조회 실패")
+    void testFindByIdFailure(){
+        Long id = 999L;
+        when(couponPolicyRepository.findById(id)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(EntityNotFoundException.class, () -> couponPolicyService.findById(id));
+
+        verify(couponPolicyRepository, times(1)).findById(id);
     }
 
 }
