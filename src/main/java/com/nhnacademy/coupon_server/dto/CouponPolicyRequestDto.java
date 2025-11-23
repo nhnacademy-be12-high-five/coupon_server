@@ -11,6 +11,8 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class CouponPolicyRequestDto {
     @NotBlank(message = "쿠폰 정책 이름은 필수입니다.")
