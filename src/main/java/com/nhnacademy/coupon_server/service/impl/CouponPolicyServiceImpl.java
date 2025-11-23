@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
+import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyRepository;
@@ -82,7 +83,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public CouponPolicyResponseDto findById(Long id) {
         log.info("쿠폰 정책 단건 조회 요청 - ID -> {}", id);
         CouponPolicy policy = couponPolicyRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
         return CouponPolicyResponseDto.fromEntity(policy);
     }
 
@@ -91,7 +92,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public void deleteById(Long id) {
         log.info("쿠폰 정책 삭제 요청 - ID -> {}", id);
         if (!couponPolicyRepository.existsById(id)) {
-            throw new EntityNotFoundException("쿠폰 정책을 찾을 수 없습니다.");
+            throw new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다.");
         }
 
         couponPolicyRepository.deleteById(id);

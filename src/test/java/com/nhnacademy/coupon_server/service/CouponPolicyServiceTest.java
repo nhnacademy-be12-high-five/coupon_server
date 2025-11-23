@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
+import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.CouponPolicyRepository;
@@ -148,12 +149,12 @@ class CouponPolicyServiceTest {
     }
 
     @Test
-    @DisplayName("쿠폰 정책  단건 조회 실패")
+    @DisplayName("쿠폰 정책 단건 조회 실패")
     void testFindByIdFailure(){
         Long id = 999L;
         when(couponPolicyRepository.findById(id)).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> couponPolicyService.findById(id));
+        Assertions.assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.findById(id));
 
         verify(couponPolicyRepository, times(1)).findById(id);
     }
@@ -177,7 +178,7 @@ class CouponPolicyServiceTest {
         Long id = 999L;
         when(couponPolicyRepository.existsById(id)).thenReturn(false);
 
-        Assertions.assertThrows(EntityNotFoundException.class, () -> couponPolicyService.deleteById(id));
+        Assertions.assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.deleteById(id));
         verify(couponPolicyRepository, never()).deleteById(id);
     }
 }

@@ -5,7 +5,9 @@ import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
 import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
+import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -99,5 +101,26 @@ class CouponPolicyAdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()").value(2))
                 .andExpect(jsonPath("$[0].name").value("정책1"));
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 삭제 성공")
+    void deletePoliciesSuccess() throws Exception {
+        Long id = 1L;
+        doNothing().when(couponPolicyService).deleteById(id);
+
+        mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 삭제 실패 - 존재하지 않는 정책")
+    void deletePoliciesFailure() throws Exception {
+        Long id = 999L;
+        doThrow(new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다.")).when(couponPolicyService).deleteById(id);
+        mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
+                .andDo(print())
+                .andExpect(status().isNotFound());
     }
 }
