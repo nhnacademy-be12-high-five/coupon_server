@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CouponServiceImpl implements CouponService {
     private final CouponPolicyRepository couponPolicyRepository;
-    private CouponRepository couponRepository;
+    private final CouponRepository couponRepository;
     private CouponPolicyRepository getCouponPolicyRepository;
 
     @Override
