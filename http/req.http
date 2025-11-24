@@ -38,7 +38,7 @@ POST http://localhost:8080/admin/coupons
 Content-Type: application/json
 
 {
-  "couponPolicyId": 1,
+  "id": 1,
   "couponName": "신규 회원 5000원 쿠폰",
   "description": "가입 즉시 지급되는 웰컴 쿠폰입니다.",
   "issueCount": 1000,
@@ -50,4 +50,4 @@ Content-Type: application/json
 
 ### [6] 쿠폰 정책 삭제 (ID: 2)
 # 주의: 이 정책을 사용하는 쿠폰이 이미 있다면 FK 제약조건 에러가 발생할 수 있습니다.
-DELETE http://localhost:8080/admin/coupon-policy/3
+DELETE http://localhost:8080/admin/coupon-policy/2
