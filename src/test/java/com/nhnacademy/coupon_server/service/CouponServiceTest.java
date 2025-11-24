@@ -4,6 +4,7 @@ import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
+import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponServiceImpl;
@@ -101,5 +102,52 @@ class CouponServiceTest {
         Assertions.assertEquals("Coupon 1", responseDtoList.get(0).getCouponName());
         Assertions.assertEquals("Coupon 2", responseDtoList.get(1).getCouponName());
         Assertions.assertEquals(policyId, responseDtoList.get(0).getCouponPolicyId());
+    }
+
+    @Test
+    @DisplayName("쿠폰 템플릿 수정 성공")
+    void updateCouponSuccess() {
+        Long couponId = 100L;
+        Long policyId = 1L;
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .id(policyId)
+                .name("기존 정책")
+                .build();
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .couponPolicy(policy)
+                .couponName("기존 이름")
+                .issueCount(10)
+                .build();
+
+        CouponRequestDto updateReq = CouponRequestDto.builder()
+                .id(policyId)
+                .couponName("새로운 이름")
+                .issueCount(20)
+                .issueStartAt(LocalDateTime.now())
+                .issueEndAt(LocalDateTime.now().plusDays(1))
+                .validPeriodDate(30)
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(couponPolicyRepository.findById(policyId)).thenReturn(Optional.of(policy));
+
+        CouponResponseDto responseDto = couponService.update(couponId, updateReq);
+
+        Assertions.assertEquals("새로운 이름", responseDto.getCouponName());
+        Assertions.assertEquals(20, responseDto.getIssueCount());
+    }
+
+    @Test
+    @DisplayName("쿠폰 템플릿 수정 실패 - 존재하지 않는 쿠폰")
+    void updateCouponNotFound() {
+        Long couponId = 999L;
+        CouponRequestDto req = CouponRequestDto.builder().id(1L).build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(CouponNotFoundException.class, () -> couponService.update(couponId, req));
     }
 }
