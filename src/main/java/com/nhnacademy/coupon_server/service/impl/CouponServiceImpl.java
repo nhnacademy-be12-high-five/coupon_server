@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -44,5 +46,14 @@ public class CouponServiceImpl implements CouponService {
 
         Coupon savedCoupon = couponRepository.save(coupon);
         return CouponResponseDto.fromEntity(savedCoupon);
+    }
+
+    @Override
+    public List<CouponResponseDto> findAll() {
+        log.info("모든 쿠폰 템플릿 조회 요청");
+
+        return couponRepository.findAll().stream()
+                .map(CouponResponseDto::fromEntity)
+                .toList();
     }
 }

@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/admin/coupons")
@@ -24,5 +26,11 @@ public class CouponAdminController implements CouponAdminDocs {
         log.info("관리자 쿠폰 템플릿 생성 요청 - 정책 ID: {}, 이름: {}", couponRequestDto.getId(), couponRequestDto.getCouponName());
         CouponResponseDto couponResponseDto = couponService.create(couponRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(couponResponseDto);
+    }
+
+    @Override
+    public ResponseEntity<List<CouponResponseDto>> findAllCoupons() {
+        List<CouponResponseDto> couponList = couponService.findAll();
+        return ResponseEntity.status(HttpStatus.OK).body(couponList);
     }
 }
