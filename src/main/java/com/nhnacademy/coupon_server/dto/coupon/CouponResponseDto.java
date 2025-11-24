@@ -1,6 +1,5 @@
 package com.nhnacademy.coupon_server.dto.coupon;
 
-import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import lombok.Builder;
 import lombok.Getter;

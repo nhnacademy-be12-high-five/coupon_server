@@ -5,7 +5,6 @@ import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 

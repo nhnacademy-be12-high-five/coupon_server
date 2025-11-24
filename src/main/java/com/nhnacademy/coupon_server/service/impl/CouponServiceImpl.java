@@ -22,7 +22,6 @@ import java.util.List;
 public class CouponServiceImpl implements CouponService {
     private final CouponPolicyRepository couponPolicyRepository;
     private final CouponRepository couponRepository;
-    private CouponPolicyRepository getCouponPolicyRepository;
 
     @Override
     @Transactional

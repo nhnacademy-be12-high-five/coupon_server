@@ -12,12 +12,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -71,5 +70,36 @@ class CouponServiceTest {
         Assertions.assertEquals(100L, responseDto.getId());
         Assertions.assertEquals("Summer Sale", responseDto.getCouponName());
         Assertions.assertEquals(policyId, responseDto.getCouponPolicyId());
+    }
+
+    @Test
+    @DisplayName("모든 쿠폰 템플릿 조회 성공")
+    void findAllCouponSuccess() {
+        Long policyId = 1L;
+        CouponPolicy mockPolicy = CouponPolicy.builder()
+                .id(policyId)
+                .name("Test Policy")
+                .build();
+
+        Coupon coupon1 = Coupon.builder()
+                .id(1L)
+                .couponPolicy(mockPolicy)
+                .couponName("Coupon 1")
+                .build();
+
+        Coupon coupon2 = Coupon.builder()
+                .id(2L)
+                .couponPolicy(mockPolicy)
+                .couponName("Coupon 2")
+                .build();
+
+        when(couponRepository.findAll()).thenReturn(List.of(coupon1, coupon2));
+
+        List<CouponResponseDto> responseDtoList = couponService.findAll();
+
+        Assertions.assertEquals(2, responseDtoList.size());
+        Assertions.assertEquals("Coupon 1", responseDtoList.get(0).getCouponName());
+        Assertions.assertEquals("Coupon 2", responseDtoList.get(1).getCouponName());
+        Assertions.assertEquals(policyId, responseDtoList.get(0).getCouponPolicyId());
     }
 }

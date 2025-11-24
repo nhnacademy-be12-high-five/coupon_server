@@ -4,7 +4,6 @@ import com.nhnacademy.coupon_server.entity.state.Status;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.security.Timestamp;
 import java.time.LocalDateTime;
 
 @Entity
