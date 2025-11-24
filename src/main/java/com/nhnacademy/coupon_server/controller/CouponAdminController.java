@@ -33,4 +33,11 @@ public class CouponAdminController implements CouponAdminDocs {
         List<CouponResponseDto> couponList = couponService.findAll();
         return ResponseEntity.status(HttpStatus.OK).body(couponList);
     }
+
+    @Override
+    public ResponseEntity<CouponResponseDto> updateCoupon(Long couponId, CouponRequestDto couponRequestDto) {
+        log.info("관리자 쿠폰 템플릿 수정 요청 - ID -> {}", couponId);
+        CouponResponseDto responseDto = couponService.update(couponId, couponRequestDto);
+        return ResponseEntity.ok(responseDto);
+    }
 }

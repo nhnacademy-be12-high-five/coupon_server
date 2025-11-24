@@ -10,9 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -32,4 +30,12 @@ public interface CouponAdminDocs {
     @GetMapping
     ResponseEntity<List<CouponResponseDto>> findAllCoupons();
 
+    @Operation(summary = "쿠폰 템플릿 수정", description = "생성된 쿠폰 템플릿을 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "쿠폰 템플릿 수정 성공", content = @Content(schema = @Schema(implementation = CouponResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "404", description = "쿠폰 템플릿 또는 정책을 찾을 수 없습니다.")
+    })
+    @PutMapping("/{couponId}")
+    ResponseEntity<CouponResponseDto> updateCoupon(@PathVariable Long couponId, @Valid @RequestBody CouponRequestDto couponRequestDto);
 }

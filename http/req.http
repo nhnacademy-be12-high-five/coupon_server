@@ -48,11 +48,26 @@ Content-Type: application/json
   "couponName": "신규 회원 5000원 쿠폰",
   "description": "가입 즉시 지급되는 웰컴 쿠폰입니다.",
   "issueCount": 1000,
-  "issueStartAt": "2025-11-24T15:00:00",
-  "issueEndAt": "2025-11-24T15:29:59",
+  "issueStartAt": "2025-11-24T16:00:00",
+  "issueEndAt": "2025-11-24T23:59:59",
   "validPeriodDate": 30,
   "validEndAt": null
 }
 
 ### [7] 쿠폰 템플릿 리스트 조회
 GET http://localhost:8080/admin/coupons
+
+### [8] 쿠폰 템플릿 수정 (쿠폰 ID: 1)
+PUT http://localhost:8080/admin/coupons/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "couponName": "수정된 신규 회원 쿠폰",
+  "description": "혜택이 변경되어 수정되었습니다.",
+  "issueCount": 2000,
+  "issueStartAt": "2025-12-01T09:00:00",
+  "issueEndAt": "2025-12-31T23:59:59",
+  "validPeriodDate": 60,
+  "validEndAt": null
+}
