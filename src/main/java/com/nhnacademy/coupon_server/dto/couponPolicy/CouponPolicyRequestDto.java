@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon_server.dto;
+package com.nhnacademy.coupon_server.dto.couponPolicy;
 
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;

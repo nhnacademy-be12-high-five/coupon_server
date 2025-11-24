@@ -1,6 +1,5 @@
 package com.nhnacademy.coupon_server.exception;
 
-import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

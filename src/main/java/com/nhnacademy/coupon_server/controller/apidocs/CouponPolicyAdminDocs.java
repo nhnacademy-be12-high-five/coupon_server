@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
-import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.Column;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

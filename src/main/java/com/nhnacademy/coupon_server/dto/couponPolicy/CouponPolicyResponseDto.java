@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon_server.dto;
+package com.nhnacademy.coupon_server.dto.couponPolicy;
 
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
@@ -8,8 +8,6 @@ import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
 

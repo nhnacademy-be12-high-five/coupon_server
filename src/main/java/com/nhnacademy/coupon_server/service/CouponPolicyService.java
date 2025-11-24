@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon_server.service;
 
-import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 
 import java.util.List;
 

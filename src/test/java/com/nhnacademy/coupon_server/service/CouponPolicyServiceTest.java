@@ -1,16 +1,15 @@
 package com.nhnacademy.coupon_server.service;
 
-import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
-import com.nhnacademy.coupon_server.repository.CouponPolicyBookRepository;
-import com.nhnacademy.coupon_server.repository.CouponPolicyCategoryRepository;
-import com.nhnacademy.coupon_server.repository.CouponPolicyRepository;
+import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
+import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyCategoryRepository;
+import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponPolicyServiceImpl;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +23,6 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 

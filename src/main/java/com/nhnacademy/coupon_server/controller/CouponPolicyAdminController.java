@@ -1,13 +1,12 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.nhnacademy.coupon_server.controller.apidocs.CouponPolicyAdminDocs;
-import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springdoc.core.parsers.ReturnTypeParser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

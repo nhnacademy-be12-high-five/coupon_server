@@ -1,13 +1,12 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.coupon_server.dto.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
