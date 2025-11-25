@@ -3,6 +3,7 @@ package com.nhnacademy.coupon_server.controller.apidocs;
 import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -38,4 +39,13 @@ public interface CouponAdminDocs {
     })
     @PutMapping("/{couponId}")
     ResponseEntity<CouponResponseDto> updateCoupon(@PathVariable Long couponId, @Valid @RequestBody CouponRequestDto couponRequestDto);
+
+    @Operation(summary = "쿠폰 템플릿 석재", description = "발행 중인 쿠폰 템플릿을 삭제하여 발급을 중단합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "삭제 성공 (내용 없음)"),
+            @ApiResponse(responseCode = "404", description = "해당 ID의 쿠폰을 찾을 수 없습니다."),
+            @ApiResponse(responseCode = "409", description = "이미 발급된 내역이 있어 삭제할 수 없습니다.")
+    })
+    @DeleteMapping("/{couponId}")
+    ResponseEntity<Void> deleteCoupon(@Parameter(description = "삭제할 쿠폰 ID", required = true) @PathVariable Long couponId);
 }

@@ -15,4 +15,7 @@ public interface CouponService {
 
     //쿠폰 템플릿 수정
     CouponResponseDto update(Long id, CouponRequestDto couponRequestDto);
+
+    //쿠폰 템플릿 삭제
+    void delete(Long id);
 }

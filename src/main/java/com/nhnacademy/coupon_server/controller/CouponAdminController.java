@@ -40,4 +40,11 @@ public class CouponAdminController implements CouponAdminDocs {
         CouponResponseDto responseDto = couponService.update(couponId, couponRequestDto);
         return ResponseEntity.ok(responseDto);
     }
+
+    @Override
+    public ResponseEntity<Void> deleteCoupon(Long couponId) {
+        log.info("관리자 쿠폰 삭제 요청 - ID -> {}", couponId);
+        couponService.delete(couponId);
+        return ResponseEntity.noContent().build();
+    }
 }

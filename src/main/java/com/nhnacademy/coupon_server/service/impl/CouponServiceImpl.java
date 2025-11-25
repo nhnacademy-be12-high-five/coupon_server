@@ -80,4 +80,16 @@ public class CouponServiceImpl implements CouponService {
         );
         return CouponResponseDto.fromEntity(coupon);
     }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        log.info("쿠폰 템플릿 삭제 요청 - ID: {}", id);
+
+        if (!couponRepository.existsById(id)) {
+            throw new CouponPolicyNotFoundException("삭제할 쿠폰 템플릿이 존재하지 않습니다. ID: " + id);
+        }
+
+        couponRepository.deleteById(id);
+    }
 }
