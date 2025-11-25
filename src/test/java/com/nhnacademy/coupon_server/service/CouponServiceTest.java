@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
+import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponServiceImpl;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CouponServiceTest {
@@ -149,5 +150,27 @@ class CouponServiceTest {
         when(couponRepository.findById(couponId)).thenReturn(Optional.empty());
 
         Assertions.assertThrows(CouponNotFoundException.class, () -> couponService.update(couponId, req));
+    }
+
+    @Test
+    @DisplayName("쿠폰 템플릿 삭제 성공")
+    void deleteCouponSuccess() {
+        Long couponId = 100L;
+        when(couponRepository.existsById(couponId)).thenReturn(true);
+        doNothing().when(couponRepository).deleteById(couponId);
+
+        couponService.delete(couponId);
+
+        verify(couponRepository, times(1)).existsById(couponId);
+        verify(couponRepository, times(1)).deleteById(couponId);
+    }
+
+    @Test
+    @DisplayName("쿠폰 템플릿 삭제 실패 - 존재하지 않는 ID")
+    void deleteCouponNotFound() {
+        Long couponId = 999L;
+        when(couponRepository.existsById(couponId)).thenReturn(false);
+        Assertions.assertThrows(CouponPolicyNotFoundException.class, () -> couponService.delete(couponId));
+        verify(couponRepository, never()).deleteById(couponId);
     }
 }
