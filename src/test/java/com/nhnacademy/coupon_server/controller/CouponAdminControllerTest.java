@@ -3,6 +3,7 @@ package com.nhnacademy.coupon_server.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
+import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.service.CouponService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -121,6 +122,30 @@ public class CouponAdminControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.couponName").value("수정된 쿠폰 이름"));
+    }
+
+    @Test
+    @DisplayName("쿠폰 템플릿 삭제 성공")
+    void deleteCouponSuccess() throws Exception {
+        Long couponId = 100L;
+        doNothing().when(couponService).delete(couponId);
+
+        mockMvc.perform(delete("/admin/coupons/{couponId}", couponId))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("쿠폰 템플릿 삭제 실패 - 존재하지 않는 쿠폰 ID")
+    void deleteCouponNotFound() throws Exception {
+        Long couponId = 999L;
+
+        doThrow(new CouponPolicyNotFoundException("쿠폰을 찾을 수 없습니다."))
+                .when(couponService).delete(couponId);
+
+        mockMvc.perform(delete("/admin/coupons/{couponId}", couponId))
+                .andDo(print())
+                .andExpect(status().isNotFound());
     }
 
 }
