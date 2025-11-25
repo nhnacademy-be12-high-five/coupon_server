@@ -19,7 +19,10 @@ class CouponServerApplicationTests {
     @DisplayName("main() 메서드 실행 커버리지 테스트")
     void main() {
         assertDoesNotThrow(() -> {
-            CouponServerApplication.main(new String[]{});
+            CouponServerApplication.main(new String[]{
+                    "--spring.cloud.config.enabled=false",
+                    "--spring.profiles.active=local"
+            });
         });
     }
 }
