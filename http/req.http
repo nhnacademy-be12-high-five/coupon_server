@@ -75,3 +75,25 @@ Content-Type: application/json
 ### [9] 쿠폰 템플릿 삭제 (쿠폰 ID: 1)
 DELETE http://localhost:8080/admin/coupons/1
 Content-Type: application/json
+
+//<----- MemberCoupon ----->
+### [10] 관리자: 전체 회원 쿠폰 내역 조회 (기본)
+GET http://localhost:8080/admin/member-coupons
+Accept: application/json
+
+### [11] 관리자: 전체 회원 쿠폰 내역 조회 (페이징)
+GET http://localhost:8080/admin/member-coupons?page=1&size=5
+Accept: application/json
+
+### [12] 관리자: 전체 회원 쿠폰 내역 조회 (정렬 적용)
+GET http://localhost:8080/admin/member-coupons?page=0&size=10&sort=issuedAt,desc
+Accept: application/json
+
+### [13] 관리자: 회원에게 쿠폰 수동 발급
+POST http://localhost:8080/admin/member-coupons/issue
+Content-Type: application/json
+
+{
+  "couponId": 10,
+  "userId": 100
+}
