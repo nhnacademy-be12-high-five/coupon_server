@@ -42,8 +42,8 @@ public class CouponPolicyAdminController implements CouponPolicyAdminDocs {
 
     @Override
     public ResponseEntity<CouponPolicyResponseDto> deleteCouponPolicy(Long couponPolicyId) {
-        log.info("관리자 쿠폰 정책 삭제 요청");
+        log.info("관리자 쿠폰 정책 비활성화 요청");
         couponPolicyService.deleteById(couponPolicyId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

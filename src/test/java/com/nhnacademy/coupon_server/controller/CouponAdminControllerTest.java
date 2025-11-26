@@ -3,7 +3,7 @@ package com.nhnacademy.coupon_server.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
-import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
+import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.service.CouponService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,8 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(
         controllers = CouponAdminController.class,
@@ -125,6 +124,30 @@ public class CouponAdminControllerTest {
     }
 
     @Test
+    @DisplayName("쿠폰 템플릿 수정 실패 - 존재하지 않는 쿠폰 ID")
+    void updateCouponNotFound() throws Exception {
+        Long couponId = 999L;
+        CouponRequestDto requestDto = CouponRequestDto.builder()
+                .id(1L)
+                .couponName("수정 시도")
+                .issueStartAt(LocalDateTime.now())
+                .issueEndAt(LocalDateTime.now().plusDays(7))
+                .validPeriodDate(30)
+                .issueCount(100)
+                .build();
+
+        doThrow(new CouponNotFoundException("쿠폰을 찾을 수 없습니다."))
+                .when(couponService).update(eq(couponId), any(CouponRequestDto.class));
+
+        mockMvc.perform(put("/admin/coupons/{couponId}", couponId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("쿠폰을 찾을 수 없습니다."));
+    }
+
+    @Test
     @DisplayName("쿠폰 템플릿 삭제 성공")
     void deleteCouponSuccess() throws Exception {
         Long couponId = 100L;
@@ -140,7 +163,7 @@ public class CouponAdminControllerTest {
     void deleteCouponNotFound() throws Exception {
         Long couponId = 999L;
 
-        doThrow(new CouponPolicyNotFoundException("쿠폰을 찾을 수 없습니다."))
+        doThrow(new CouponNotFoundException("쿠폰을 찾을 수 없습니다."))
                 .when(couponService).delete(couponId);
 
         mockMvc.perform(delete("/admin/coupons/{couponId}", couponId))

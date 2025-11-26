@@ -89,10 +89,9 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     @Transactional
     public void deleteById(Long id) {
         log.info("쿠폰 정책 삭제 요청 - ID -> {}", id);
-        if (!couponPolicyRepository.existsById(id)) {
-            throw new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다.");
-        }
+        CouponPolicy policy = couponPolicyRepository.findById(id)
+                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
 
-        couponPolicyRepository.deleteById(id);
+        policy.disable();
     }
 }

@@ -4,6 +4,7 @@ import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
 import com.nhnacademy.coupon_server.entity.state.Comment;
+import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +22,7 @@ public class CouponPolicyResponseDto {
     private Long discountValue;
     private Long minOrderValue;
     private Long maxDiscountValue;
+    private CouponPolicyStatus status;
     private List<Long> targetBookIds;
     private List<Long> targetCategoryIds;
 
@@ -39,6 +41,7 @@ public class CouponPolicyResponseDto {
                 .discountValue(policy.getDiscountValue())
                 .minOrderValue(policy.getMinOrderValue())
                 .maxDiscountValue(policy.getMaxDiscountValue())
+                .status(policy.getStatus())
                 .targetBookIds(bookIds)
                 .targetCategoryIds(categoryIds)
                 .build();

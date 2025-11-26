@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.entity;
 
 import com.nhnacademy.coupon_server.entity.state.Comment;
+import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -46,6 +47,12 @@ public class CouponPolicy {
     @Setter
     private Long maxDiscountValue;
 
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Setter
+    private CouponPolicyStatus status = CouponPolicyStatus.ACTIVE;
+
     @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter
     @Builder.Default
@@ -55,4 +62,8 @@ public class CouponPolicy {
     @Setter
     @Builder.Default
     private List<CouponPolicyCategory> usableCategories = new ArrayList<>();
+
+    public void disable() {
+        this.status = CouponPolicyStatus.INACTIVE;
+    }
 }

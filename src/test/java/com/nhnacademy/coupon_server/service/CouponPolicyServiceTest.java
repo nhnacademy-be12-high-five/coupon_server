@@ -4,6 +4,7 @@ import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
 import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.Comment;
+import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
@@ -158,23 +159,23 @@ class CouponPolicyServiceTest {
     }
 
     @Test
-    @DisplayName("쿠폰 정책 삭제 성공")
+    @DisplayName("쿠폰 정책 비활성화 성공")
     void testDeleteSuccess(){
         Long id = 1L;
-        when(couponPolicyRepository.existsById(id)).thenReturn(true);
-        doNothing().when(couponPolicyRepository).deleteById(id);
+        when(couponPolicyRepository.findById(id)).thenReturn(Optional.of(mockPolicy));
 
         couponPolicyService.deleteById(id);
 
-        verify(couponPolicyRepository, times(1)).existsById(id);
-        verify(couponPolicyRepository, times(1)).deleteById(id);
+        verify(couponPolicyRepository, times(1)).findById(id);
+        verify(couponPolicyRepository, never()).deleteById(id);
+        Assertions.assertEquals(CouponPolicyStatus.INACTIVE, mockPolicy.getStatus());
     }
 
     @Test
     @DisplayName("쿠폰 정책 삭제 실패 - 존재하지 않는 ID")
     void testDeleteFailureNotFound(){
         Long id = 999L;
-        when(couponPolicyRepository.existsById(id)).thenReturn(false);
+        when(couponPolicyRepository.findById(id)).thenReturn(Optional.empty());
 
         Assertions.assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.deleteById(id));
         verify(couponPolicyRepository, never()).deleteById(id);

@@ -45,15 +45,14 @@ public interface CouponPolicyAdminDocs {
             @PathVariable Long couponPolicyId
     );
 
-    @Operation(summary = "쿠폰 정책 삭제", description = "쿠폰 정책을 삭제합니다.")
+    @Operation(summary = "쿠폰 정책 비활성화", description = "쿠폰 정책을 비활성화 합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "쿠폰 정책 삭제 성공"),
+            @ApiResponse(responseCode = "201", description = "쿠폰 정책 비활성화 성공"),
             @ApiResponse(responseCode = "404", description = "해당 ID의 정책을 찾을 수 없음"),
-            @ApiResponse(responseCode = "409", description = "이미 사용중인 정책이라 삭제할 수 없음")
     })
     @DeleteMapping("/{couponPolicyId}")
     ResponseEntity<CouponPolicyResponseDto> deleteCouponPolicy(
-            @Parameter(name = "couponPolicyId", description = "삭제할 정책 ID", required = true, in = ParameterIn.PATH, example = "1")
+            @Parameter(name = "couponPolicyId", description = "비활성화 할 정책 ID", required = true, in = ParameterIn.PATH, example = "1")
             @PathVariable Long couponPolicyId
     );
 }

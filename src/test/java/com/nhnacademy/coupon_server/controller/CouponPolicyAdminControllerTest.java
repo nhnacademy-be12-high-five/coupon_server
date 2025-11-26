@@ -183,18 +183,18 @@ class CouponPolicyAdminControllerTest {
     }
 
     @Test
-    @DisplayName("쿠폰 정책 삭제 성공")
+    @DisplayName("쿠폰 정책 비활성화 성공")
     void deletePoliciesSuccess() throws Exception {
         Long id = 1L;
         doNothing().when(couponPolicyService).deleteById(id);
 
         mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
                 .andDo(print())
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("쿠폰 정책 삭제 실패 - 존재하지 않는 정책")
+    @DisplayName("쿠폰 정책 비활성화 실패 - 존재하지 않는 정책")
     void deletePoliciesFailure() throws Exception {
         Long id = 999L;
         doThrow(new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다.")).when(couponPolicyService).deleteById(id);
@@ -234,10 +234,10 @@ class CouponPolicyAdminControllerTest {
     }
 
     @Test
-    @DisplayName("쿠폰 찾기 실패 (404)")
+    @DisplayName("쿠폰 정책 찾기 실패 (404)")
     void handleNotFoundExceptionTest() throws Exception {
         Long id = 999L;
-        doThrow(new CouponNotFoundException("쿠폰을 찾을 수 없습니다."))
+        doThrow(new CouponPolicyNotFoundException("쿠폰을 찾을 수 없습니다."))
                 .when(couponPolicyService).deleteById(id);
 
         mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
