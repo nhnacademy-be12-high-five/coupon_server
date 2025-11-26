@@ -60,6 +60,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     }
 
     @Override
+    @Transactional
     public void issueCouponByUser(Long userId, Long couponId) {
         log.info("사용자 쿠폰 발급 요청 - Coupon: {}, User: {}", couponId, userId);
 

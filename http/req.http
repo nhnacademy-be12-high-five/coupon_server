@@ -106,3 +106,7 @@ X-USER-ID: 1
 {
   "couponId": 1
 }
+
+### [15] 쿠폰 조회
+GET http://localhost:8080/coupons/members/1
+Accept: application/json

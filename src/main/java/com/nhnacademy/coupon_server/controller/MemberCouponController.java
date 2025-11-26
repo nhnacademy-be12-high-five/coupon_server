@@ -27,8 +27,8 @@ public class MemberCouponController implements MemberCouponDocs {
     }
 
     @Override
-    public ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(@PathVariable Long userId, Pageable pageable) {
-        Page<MemberCouponResponseDto> responseDtos = memberCouponService.findCouponByUserId(userId, pageable);
+    public ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(@PathVariable Long memberId, Pageable pageable) {
+        Page<MemberCouponResponseDto> responseDtos = memberCouponService.findCouponByUserId(memberId, pageable);
         return ResponseEntity.ok(responseDtos);
     }
 }
