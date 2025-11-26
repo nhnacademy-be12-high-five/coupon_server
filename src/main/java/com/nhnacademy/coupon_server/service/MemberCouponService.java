@@ -9,4 +9,6 @@ public interface MemberCouponService {
     Page<MemberCouponResponseDto> findAll(Pageable pageable);
 
     void issueCouponByAdmin(MemberCouponIssueRequestDto requestDto);
+
+    void issueCouponByUser(Long userId, Long couponId);
 }

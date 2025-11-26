@@ -58,4 +58,39 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         memberCouponRepository.save(memberCoupon);
     }
+
+    @Override
+    public void issueCouponByUser(Long userId, Long couponId) {
+        log.info("사용자 쿠폰 발급 요청 - Coupon: {}, User: {}", couponId, userId);
+
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID: " + couponId));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
+            throw new IllegalArgumentException("아직 발급 가능한 기간이 아닙니다.");
+        }
+        if (coupon.getIssuedEndAt() != null && now.isAfter(coupon.getIssuedEndAt())) {
+            throw new IllegalArgumentException("발급 기간이 지났습니다.");
+        }
+        if (coupon.getIssueCount() != null) {
+            long currentCount = memberCouponRepository.countByCouponId(couponId);
+            if (currentCount >= coupon.getIssueCount()) {
+                throw new IllegalStateException("발급 기간이 지났습니다.");
+            }
+        }
+
+        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+            throw new DuplicateCouponException("이미 해당 쿠폰을 발급받으셨습니다.");
+        }
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .userId(userId)
+                .status(Status.ISSUED)
+                .issueAt(LocalDateTime.now())
+                .expiredAt(dateCalculator.calculateExpiration(coupon))
+                .build();
+        memberCouponRepository.save(memberCoupon);
+    }
 }

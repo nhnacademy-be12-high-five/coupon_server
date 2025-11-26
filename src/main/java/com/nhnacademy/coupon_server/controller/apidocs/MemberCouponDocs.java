@@ -1,0 +1,36 @@
+package com.nhnacademy.coupon_server.controller.apidocs;
+
+import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
+@Tag(name = "MemberCoupon", description = "사용자 전용 회원 쿠폰 관리 API")
+public interface MemberCouponDocs {
+
+    @Operation(summary = "쿠폰 발급 신청", description = "로그인한 사용자가 선착순 또는 일반 쿠폰 발급을 요청합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "쿠폰 발급 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (발급 기간 위반, 유효하지 않은 쿠폰 등)"),
+            @ApiResponse(responseCode = "404", description = "대상 쿠폰을 찾을 수 없음"),
+            @ApiResponse(responseCode = "409", description = "이미 발급된 쿠폰이거나 재고가 소진됨")
+    })
+    @PostMapping("/issue")
+    ResponseEntity<Void> issueCoupon(
+            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long userId,
+
+            @Valid @RequestBody UserCouponIssueRequestDto requestDto
+    );
+}
