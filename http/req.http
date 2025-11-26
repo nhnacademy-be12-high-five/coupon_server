@@ -97,3 +97,12 @@ Content-Type: application/json
   "couponId": 10,
   "userId": 100
 }
+
+### [14] 쿠폰 발급 신청
+POST http://localhost:8080/coupons/issue
+Content-Type: application/json
+X-USER-ID: 1
+
+{
+  "couponId": 1
+}

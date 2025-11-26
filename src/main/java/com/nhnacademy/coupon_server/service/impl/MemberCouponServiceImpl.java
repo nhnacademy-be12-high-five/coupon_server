@@ -93,4 +93,10 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .build();
         memberCouponRepository.save(memberCoupon);
     }
+
+    @Override
+    public Page<MemberCouponResponseDto> findCouponByUserId(Long userId, Pageable pageable) {
+        Page<MemberCoupon> memberCoupons = memberCouponRepository.findByUserId(userId, pageable);
+        return memberCoupons.map(MemberCouponResponseDto::fromEntity);
+    }
 }

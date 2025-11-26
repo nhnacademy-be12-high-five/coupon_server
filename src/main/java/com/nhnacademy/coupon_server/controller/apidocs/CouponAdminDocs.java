@@ -40,7 +40,7 @@ public interface CouponAdminDocs {
     @PutMapping("/{couponId}")
     ResponseEntity<CouponResponseDto> updateCoupon(@PathVariable Long couponId, @Valid @RequestBody CouponRequestDto couponRequestDto);
 
-    @Operation(summary = "쿠폰 템플릿 석재", description = "발행 중인 쿠폰 템플릿을 삭제하여 발급을 중단합니다.")
+    @Operation(summary = "쿠폰 템플릿 삭제", description = "발행 중인 쿠폰 템플릿을 삭제하여 발급을 중단합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "삭제 성공 (내용 없음)"),
             @ApiResponse(responseCode = "404", description = "해당 ID의 쿠폰을 찾을 수 없습니다."),

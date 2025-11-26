@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
+import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,10 +12,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "MemberCoupon", description = "사용자 전용 회원 쿠폰 관리 API")
 public interface MemberCouponDocs {
@@ -32,5 +33,17 @@ public interface MemberCouponDocs {
             @RequestHeader("X-USER-ID") Long userId,
 
             @Valid @RequestBody UserCouponIssueRequestDto requestDto
+    );
+
+    @Operation(summary = "사용자 쿠폰 목록 조회", description = "사용자가 보유한 쿠폰 목록을 조회합니다. (페이징 적용)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "쿠폰 목록 조회 성공",
+                    content = @Content(schema = @Schema(implementation = MemberCouponResponseDto.class)))
+    })
+    @GetMapping("/members/{memberId}")
+    ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(
+            @Parameter(name = "memberId", description = "조회할 사용자 ID", required = true, in = ParameterIn.PATH, example = "1")
+            @PathVariable Long memberId,
+            @Parameter(hidden = true) Pageable pageable
     );
 }
