@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
+import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
@@ -44,6 +45,12 @@ public interface MemberCouponDocs {
     ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(
             @Parameter(name = "memberId", description = "조회할 사용자 ID", required = true, in = ParameterIn.PATH, example = "1")
             @PathVariable Long memberId,
+            @Parameter(hidden = true) Pageable pageable
+    );
+
+    @Operation(summary = "발급 가능한 쿠폰 목록 조회", description = "현재 발급 기간에 해당하여 사용자가 다운로드할 수 있는 쿠폰 템플릿 목록을 조회합니다.")
+    @GetMapping("/templates")
+    ResponseEntity<Page<CouponResponseDto>> getIssuableCoupons(
             @Parameter(hidden = true) Pageable pageable
     );
 }

@@ -110,3 +110,7 @@ X-USER-ID: 1
 ### [15] 쿠폰 조회
 GET http://localhost:8080/coupons/members/1
 Accept: application/json
+
+### [16] 발급 가능한 쿠폰 템플릿 목록 조회
+GET http://localhost:8080/coupons/templates?page=0&size=10
+Accept: application/json

@@ -18,8 +18,13 @@ public class CouponResponseDto {
     private LocalDateTime issueEndAt;
     private Integer validPeriodDate;
     private LocalDateTime validEndAt;
+    private Integer remainingCount;
 
     public static CouponResponseDto fromEntity(Coupon coupon) {
+        return fromEntity(coupon, null);
+    }
+
+    public static CouponResponseDto fromEntity(Coupon coupon, Integer remainingCount) {
         return CouponResponseDto.builder()
                 .id(coupon.getId())
                 .couponPolicyId(coupon.getCouponPolicy().getId())
@@ -30,6 +35,7 @@ public class CouponResponseDto {
                 .issueEndAt(coupon.getIssuedEndAt())
                 .validPeriodDate(coupon.getValidPeriodDate())
                 .validEndAt(coupon.getValidEndAt())
+                .remainingCount(remainingCount)
                 .build();
     }
 }

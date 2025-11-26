@@ -8,12 +8,16 @@ import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
+import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -23,6 +27,7 @@ import java.util.List;
 public class CouponServiceImpl implements CouponService {
     private final CouponPolicyRepository couponPolicyRepository;
     private final CouponRepository couponRepository;
+    private final MemberCouponRepository memberCouponRepository;
 
     @Override
     @Transactional
@@ -91,5 +96,20 @@ public class CouponServiceImpl implements CouponService {
         }
 
         couponRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<CouponResponseDto> findIssuableCoupons(Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfter(now, now, pageable);
+        return coupons.map(coupon -> {
+            Integer remainingCount = null;
+            if (coupon.getIssueCount() != null) {
+                long issueCount = memberCouponRepository.countByCouponId(coupon.getId());
+                remainingCount = Math.max(0, coupon.getIssueCount() - (int) issueCount);
+            }
+
+            return CouponResponseDto.fromEntity(coupon, remainingCount);
+        });
     }
 }
