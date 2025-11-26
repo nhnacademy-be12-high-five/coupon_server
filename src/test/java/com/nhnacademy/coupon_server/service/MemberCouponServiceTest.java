@@ -143,4 +143,35 @@ public class MemberCouponServiceTest {
         Assertions.assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         Assertions.assertEquals(errorMessage, response.getBody());
     }
+
+    @Test
+    @DisplayName("사용자 쿠폰 발급 성공")
+    void issueCouponByUserSuccess() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expirationDate = now.plusDays(30);
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .issueCount(100)
+                .issuedStartAt(now.minusDays(1))
+                .issuedEndAt(now.plusDays(1))
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(99L);
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
+        when(dateCalculator.calculateExpiration(coupon)).thenReturn(expirationDate);
+
+        memberCouponService.issueCouponByUser(userId, couponId);
+
+        ArgumentCaptor<MemberCoupon> captor = ArgumentCaptor.forClass(MemberCoupon.class);
+        verify(memberCouponRepository).save(captor.capture());
+
+        MemberCoupon savedCoupon = captor.getValue();
+        Assertions.assertEquals(userId, savedCoupon.getUserId());
+        Assertions.assertEquals(Status.ISSUED, savedCoupon.getStatus());
+        Assertions.assertEquals(expirationDate, savedCoupon.getExpiredAt());
+    }
 }
