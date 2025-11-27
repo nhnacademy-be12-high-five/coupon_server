@@ -1,10 +1,12 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
+import com.nhnacademy.coupon_server.service.CouponService;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,9 @@ class MemberCouponControllerTest {
 
     @MockitoBean
     private MemberCouponService memberCouponService;
+
+    @MockitoBean
+    private CouponService couponService;
 
     @Test
     @DisplayName("사용자 쿠폰 발급 성공 (201)")
@@ -127,5 +132,37 @@ class MemberCouponControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].couponName").value("테스트 쿠폰"));
+    }
+
+    @Test
+    @DisplayName("발급 가능한 쿠폰 템플릿 목록 조회 성공")
+    void getIssuableCouponsSuccess() throws Exception {
+        CouponResponseDto limitedCoupon = CouponResponseDto.builder()
+                .id(1L)
+                .couponName("선착순 쿠폰")
+                .remainingCount(90) // 잔여 수량 설정
+                .build();
+
+        CouponResponseDto unlimitedCoupon = CouponResponseDto.builder()
+                .id(2L)
+                .couponName("무제한 쿠폰")
+                .remainingCount(null)
+                .build();
+
+        Page<CouponResponseDto> mockPage = new PageImpl<>(List.of(limitedCoupon, unlimitedCoupon));
+
+        when(couponService.findIssuableCoupons(any(Pageable.class)))
+                .thenReturn(mockPage);
+
+        mockMvc.perform(get("/coupons/templates")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].couponName").value("선착순 쿠폰"))
+                .andExpect(jsonPath("$.content[0].remainingCount").value(90))
+                .andExpect(jsonPath("$.content[1].couponName").value("무제한 쿠폰"))
+                .andExpect(jsonPath("$.content[1].remainingCount").doesNotExist())
+                .andDo(print());
     }
 }
