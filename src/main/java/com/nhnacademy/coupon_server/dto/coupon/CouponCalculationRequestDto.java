@@ -1,0 +1,17 @@
+package com.nhnacademy.coupon_server.dto.coupon;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CouponCalculationRequestDto {
+    @NotNull(message = "쿠폰 ID는 필수 입니다.")
+    private Long couponId;
+
+    @NotNull(message = "주문 총 금액은 필수입니다.")
+    private Long totalOrderPrice;
+}

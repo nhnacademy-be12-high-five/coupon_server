@@ -1,6 +1,6 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
-import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.coupon.*;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
@@ -17,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "MemberCoupon", description = "사용자 전용 회원 쿠폰 관리 API")
 public interface MemberCouponDocs {
@@ -52,5 +54,50 @@ public interface MemberCouponDocs {
     @GetMapping("/templates")
     ResponseEntity<Page<CouponResponseDto>> getIssuableCoupons(
             @Parameter(hidden = true) Pageable pageable
+    );
+
+    @Operation(summary = "주문 시 적용 가능 쿠폰 조회", description = "주문서 작성 시 사용자가 보유한 쿠폰 중 사용 가능한(미사용, 유효기간 내) 쿠폰 목록을 조회합니다.")
+    @GetMapping("/members/{memberId}/order")
+    ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(
+            @Parameter(name = "memberId", description = "조회할 사용자 ID", required = true, in = ParameterIn.PATH, example = "1")
+            @PathVariable Long memberId
+    );
+
+    @Operation(summary = "쿠폰 할인 금액 계산", description = "주문 금액에 대해 특정 쿠폰을 적용했을 때의 할인 금액을 계산하고 유효성을 검증합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "계산 성공"),
+            @ApiResponse(responseCode = "400", description = "최소 주문 금액 미달 또는 유효하지 않은 쿠폰")
+    })
+    @PostMapping("/calculate")
+    ResponseEntity<CouponCalculationResponseDto> calculateCoupon(
+            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long userId,
+            @Valid @RequestBody CouponCalculationRequestDto requestDto
+    );
+
+    @Operation(summary = "쿠폰 사용 처리", description = "결제가 완료된 후 쿠폰 상태를 '사용됨(USED)'으로 변경합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용 처리 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 유효하지 않은 쿠폰(만료, 이미 사용됨)"),
+            @ApiResponse(responseCode = "404", description = "쿠폰을 찾을 수 없음")
+    })
+    @PostMapping("/use")
+    ResponseEntity<Void> useCoupon(
+            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long userId,
+            @Valid @RequestBody MemberCouponUseRequestDto requestDto
+    );
+
+    @Operation(summary = "쿠폰 사용 취소", description = "주문 취소/환불 시 쿠폰 상태를 '사용 가능(ISSUED)'으로 복구합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "취소(복구) 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청(이미 취소됨, 다른 주문 ID 등)"),
+            @ApiResponse(responseCode = "404", description = "쿠폰을 찾을 수 없음")
+    })
+    @PostMapping("/cancel")
+    ResponseEntity<Void> cancelCouponUsage(
+            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long userId,
+            @Valid @RequestBody MemberCouponCancelRequestDto requestDto
     );
 }

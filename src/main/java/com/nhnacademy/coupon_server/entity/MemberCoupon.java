@@ -43,4 +43,16 @@ public class MemberCoupon {
 
     @Column(name = "order_id")
     private Long orderId;
+
+    public void use(Long orderId) {
+        this.status = Status.USED;
+        this.orderId = orderId;
+        this.usedAt = LocalDateTime.now();
+    }
+
+    public void cancel() {
+        this.status = Status.ISSUED;
+        this.usedAt = null;
+        this.orderId = null;
+    }
 }
