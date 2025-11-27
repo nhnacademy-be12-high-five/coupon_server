@@ -141,6 +141,10 @@ public class MemberCouponServiceImpl implements MemberCouponService {
             default -> throw new IllegalStateException("알 수 없는 할인 타입입니다.");
         }
 
+        if (policy.getMaxDiscountValue() != null && discountAmount > policy.getMaxDiscountValue()) {
+            discountAmount = policy.getMaxDiscountValue();
+        }
+
         discountAmount = Math.min(discountAmount, orderPrice);
 
         return CouponCalculationResponseDto.builder()
@@ -167,8 +171,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
             throw new IllegalStateException("유효 기간이 지난 쿠폰입니다.");
         }
 
-        memberCoupon.setStatus(Status.USED);
-        memberCoupon.setUsedAt(LocalDateTime.now());
+        memberCoupon.use(requestDto.getOrderId());
         // MemberCoupon 엔티티에 setOrderId가 없다면 추가 필요 (Lombok @Setter가 있다면 가능)
         // memberCoupon.setOrderId(requestDto.getOrderId());
     }

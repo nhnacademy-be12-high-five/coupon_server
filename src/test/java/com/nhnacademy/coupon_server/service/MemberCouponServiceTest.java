@@ -1,12 +1,16 @@
 package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
+import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationRequestDto;
+import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
 import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
+import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.exception.GlobalExceptionHandler;
@@ -300,6 +304,200 @@ public class MemberCouponServiceTest {
                 .thenReturn(Optional.of(issuedCoupon));
 
         Assertions.assertThrows(IllegalStateException.class, () -> memberCouponService.cancelCouponUsage(userId, requestDto)
+        );
+    }
+
+    @Test
+    @DisplayName("사용자 쿠폰 발급 실패 - 발급 시작 기간 전")
+    void issueCouponByUserFailureBeforeStart() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .issuedStartAt(LocalDateTime.now().plusDays(1)) // 내일부터 발급 가능
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        Assertions.assertThrows(IllegalArgumentException.class, () ->
+                memberCouponService.issueCouponByUser(userId, couponId)
+        );
+    }
+
+    @Test
+    @DisplayName("사용자 쿠폰 발급 실패 - 발급 종료 기간 지남")
+    void issueCouponByUserFailureAfterEnd() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .issuedEndAt(LocalDateTime.now().minusDays(1)) // 어제 종료됨
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        Assertions.assertThrows(IllegalArgumentException.class, () ->
+                memberCouponService.issueCouponByUser(userId, couponId)
+        );
+    }
+
+    @Test
+    @DisplayName("사용자 쿠폰 발급 실패 - 발급 수량 소진")
+    void issueCouponByUserFailureCountExhausted() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .issueCount(100) // 총 100개
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(100L); // 이미 100개 발급됨
+
+        Assertions.assertThrows(IllegalStateException.class, () ->
+                memberCouponService.issueCouponByUser(userId, couponId)
+        );
+    }
+
+    @Test
+    @DisplayName("할인 계산 성공 - 정액 할인 (FIXED)")
+    void calculateDiscountFixed() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderPrice = 30000L;
+        Long discountVal = 5000L;
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED)
+                .discountValue(discountVal)
+                .minOrderValue(10000L)
+                .build();
+
+        Coupon coupon = Coupon.builder().couponPolicy(policy).build();
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId))
+                .thenReturn(Optional.of(memberCoupon));
+
+        CouponCalculationRequestDto req = new CouponCalculationRequestDto(couponId, orderPrice);
+        CouponCalculationResponseDto res = memberCouponService.calculateDiscount(userId, req);
+
+        Assertions.assertEquals(discountVal, res.getDiscountAmount());
+        Assertions.assertEquals(orderPrice - discountVal, res.getFinalPrice());
+    }
+
+    @Test
+    @DisplayName("할인 계산 성공 - 정률 할인 (PERCENTAGE)")
+    void calculateDiscountPercentage() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderPrice = 20000L;
+        Long discountPercent = 10L;
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.PERCENTAGE)
+                .discountValue(discountPercent)
+                .build();
+
+        Coupon coupon = Coupon.builder().couponPolicy(policy).build();
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId))
+                .thenReturn(Optional.of(memberCoupon));
+
+        CouponCalculationRequestDto req = new CouponCalculationRequestDto(couponId, orderPrice);
+        CouponCalculationResponseDto res = memberCouponService.calculateDiscount(userId, req);
+
+        Assertions.assertEquals(2000L, res.getDiscountAmount());
+        Assertions.assertEquals(18000L, res.getFinalPrice());
+    }
+
+    @Test
+    @DisplayName("할인 계산 성공 - 최대 할인 한도 적용")
+    void calculateDiscountMaxLimit() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderPrice = 100000L;
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.PERCENTAGE)
+                .discountValue(50L)
+                .maxDiscountValue(10000L)
+                .build();
+
+        Coupon coupon = Coupon.builder().couponPolicy(policy).build();
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId))
+                .thenReturn(Optional.of(memberCoupon));
+
+        CouponCalculationRequestDto req = new CouponCalculationRequestDto(couponId, orderPrice);
+        CouponCalculationResponseDto res = memberCouponService.calculateDiscount(userId, req);
+
+        Assertions.assertEquals(10000L, res.getDiscountAmount());
+    }
+
+    @Test
+    @DisplayName("할인 계산 실패 - 최소 주문 금액 미달")
+    void calculateDiscountFailureMinOrderValue() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderPrice = 5000L;
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .minOrderValue(10000L)
+                .build();
+
+        Coupon coupon = Coupon.builder().couponPolicy(policy).build();
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId))
+                .thenReturn(Optional.of(memberCoupon));
+
+        CouponCalculationRequestDto req = new CouponCalculationRequestDto(couponId, orderPrice);
+
+        Assertions.assertThrows(IllegalArgumentException.class, () ->
+                memberCouponService.calculateDiscount(userId, req)
+        );
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 취소 실패 - 주문 ID 불일치")
+    void cancelCouponUsageFailureOrderIdMismatch() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long requestOrderId = 999L;
+        Long actualOrderId = 111L;
+
+        MemberCouponCancelRequestDto req = new MemberCouponCancelRequestDto(couponId, requestOrderId);
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .status(Status.USED)
+                .orderId(actualOrderId)
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId))
+                .thenReturn(Optional.of(memberCoupon));
+
+        Assertions.assertThrows(IllegalArgumentException.class, () ->
+                memberCouponService.cancelCouponUsage(userId, req)
         );
     }
 }
