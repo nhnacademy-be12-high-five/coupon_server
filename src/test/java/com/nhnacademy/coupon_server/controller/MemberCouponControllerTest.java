@@ -2,9 +2,12 @@ package com.nhnacademy.coupon_server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.service.CouponService;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
@@ -164,5 +167,76 @@ class MemberCouponControllerTest {
                 .andExpect(jsonPath("$.content[1].couponName").value("무제한 쿠폰"))
                 .andExpect(jsonPath("$.content[1].remainingCount").doesNotExist())
                 .andDo(print());
+    }
+
+    @Test
+    @DisplayName("주문 시 적용 가능 쿠폰 조회 성공")
+    void getUsableCouponsSuccess() throws Exception {
+        Long userId = 1L;
+
+        MemberCouponResponseDto responseDto = MemberCouponResponseDto.builder()
+                .couponName("주문 할인 쿠폰")
+                .status(Status.ISSUED)
+                .build();
+
+        when(memberCouponService.findUsableCoupons(userId)).thenReturn(List.of(responseDto));
+
+        mockMvc.perform(get("/coupons/members/{memberId}/order", userId)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].couponName").value("주문 할인 쿠폰"))
+                .andExpect(jsonPath("$[0].status").value(Status.ISSUED.name()))
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 처리 성공 (200)")
+    void useCouponSuccess() throws Exception {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderId = 20251127L;
+
+        MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, orderId);
+
+        doNothing().when(memberCouponService).useCoupon(any(Long.class), any(MemberCouponUseRequestDto.class));
+
+        mockMvc.perform(post("/coupons/use", userId)
+                .header("X-USER-ID", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 처리 실패 - 필수 값 누락 (400)")
+    void useCouponInvalidInput() throws Exception {
+        Long userId = 1L;
+
+        MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(100L, null);
+
+        mockMvc.perform(post("/coupons/use", userId)
+                .header("X-USER-ID", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest())
+                .andDo(print());
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 취소 성공 (200 OK)")
+    void cancelCouponUsageSuccess() throws Exception {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderId = 12345L;
+        MemberCouponCancelRequestDto requestDto = new MemberCouponCancelRequestDto(couponId, orderId);
+
+        doNothing().when(memberCouponService).cancelCouponUsage(any(Long.class), any(MemberCouponCancelRequestDto.class));
+
+        mockMvc.perform(post("/coupons/cancel")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk());
     }
 }

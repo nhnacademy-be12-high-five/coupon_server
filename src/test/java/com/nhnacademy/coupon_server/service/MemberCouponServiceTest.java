@@ -1,6 +1,8 @@
 package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
+import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
@@ -26,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.lang.reflect.Member;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -173,5 +176,130 @@ public class MemberCouponServiceTest {
         Assertions.assertEquals(userId, savedCoupon.getUserId());
         Assertions.assertEquals(Status.ISSUED, savedCoupon.getStatus());
         Assertions.assertEquals(expirationDate, savedCoupon.getExpiredAt());
+    }
+
+    @Test
+    @DisplayName("주문 시 적용 가능한 쿠폰 목록 조회 성공")
+    void findUsableCOuponsSuccess() {
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+
+        Coupon mockCoupon = Coupon.builder()
+                .id(1L)
+                .couponName("할인 쿠폰")
+                .build();
+
+        MemberCoupon validMemberCoupon = MemberCoupon.builder()
+                .id(1L)
+                .userId(userId)
+                .coupon(mockCoupon)
+                .status(Status.ISSUED)
+                .issueAt(now.minusDays(1))
+                .expiredAt(now.plusDays(10))
+                .build();
+
+        when(memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class))).thenReturn(List.of(validMemberCoupon));
+
+        List<MemberCouponResponseDto> result = memberCouponService.findUsableCoupons(userId);
+
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals("할인 쿠폰", result.get(0).getCouponName());
+
+        verify(memberCouponRepository, times(1)).findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 처리 성공")
+    void useCouponSuccess() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderId = 20251127L;
+
+        MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, orderId);
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .id(1L)
+                .userId(userId)
+                .status(Status.ISSUED)
+                .expiredAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId)).thenReturn(Optional.of(memberCoupon));
+
+        memberCouponService.useCoupon(userId, requestDto);
+        Assertions.assertEquals(Status.USED, memberCoupon.getStatus());
+        Assertions.assertNotNull(memberCoupon.getUsedAt());
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 실패 - 이미 사용된 쿠폰")
+    void useCouponFailureAlreadyUsed() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, userId);
+        MemberCoupon usedCoupon = MemberCoupon.builder()
+                .status(Status.USED)
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId)).thenReturn(Optional.of(usedCoupon));
+        Assertions.assertThrows(IllegalStateException.class, () -> memberCouponService.useCoupon(userId, requestDto));
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 실패 - 유효 기간 만료")
+    void useCouponFailureExpired() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, userId);
+
+        MemberCoupon expiredCoupon = MemberCoupon.builder()
+                .status(Status.ISSUED)
+                .expiredAt(LocalDateTime.now().minusDays(1))
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId)).thenReturn(Optional.of(expiredCoupon));
+        Assertions.assertThrows(IllegalStateException.class, () -> memberCouponService.useCoupon(userId, requestDto));
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 취소(복구) 성공")
+    void cancelCouponUsageSuccess() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long orderId = 20251127L;
+
+        MemberCouponCancelRequestDto requestDto = new MemberCouponCancelRequestDto(couponId, orderId);
+
+        MemberCoupon usedCoupon = MemberCoupon.builder()
+                .userId(userId)
+                .status(Status.USED)
+                .orderId(orderId)
+                .usedAt(LocalDateTime.now())
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId)).thenReturn(Optional.of(usedCoupon));
+
+        memberCouponService.cancelCouponUsage(userId, requestDto);
+
+        Assertions.assertEquals(Status.ISSUED, usedCoupon.getStatus());
+        Assertions.assertNull(usedCoupon.getUsedAt(), "사용 취소 시 사용 일시는 null이어야 합니다.");
+        Assertions.assertNull(usedCoupon.getOrderId(), "사용 취소 시 주문 ID는 null이어야 합니다.");
+    }
+    @Test
+    @DisplayName("쿠폰 사용 취소 실패 - 아직 사용 안 한 쿠폰")
+    void cancelCouponUsageFailureNotUsed() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        MemberCouponCancelRequestDto requestDto = new MemberCouponCancelRequestDto(couponId, 123L);
+
+        MemberCoupon issuedCoupon = MemberCoupon.builder()
+                .status(Status.ISSUED)
+                .build();
+
+        when(memberCouponRepository.findByUserIdAndCouponId(userId, couponId))
+                .thenReturn(Optional.of(issuedCoupon));
+
+        Assertions.assertThrows(IllegalStateException.class, () -> memberCouponService.cancelCouponUsage(userId, requestDto)
+        );
     }
 }

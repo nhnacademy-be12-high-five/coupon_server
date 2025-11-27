@@ -7,6 +7,7 @@ import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -131,5 +133,45 @@ class MemberCouponRepositoryTest {
 
         assertThat(result.getContent().get(0).getIssueAt())
                 .isAfterOrEqualTo(result.getContent().get(1).getIssueAt());
+    }
+
+    @Test
+    @DisplayName("주문 시 사용 가능한 쿠폰 조회 (상태가 ISSUED이고 만료되지 않은 쿠폰)")
+    void findAllByUserIdAndStatusAndExpiredAtAfter() {
+        LocalDateTime now = LocalDateTime.now();
+
+        MemberCoupon validCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .userId(userId)
+                .status(Status.ISSUED)
+                .issueAt(now.minusDays(1))
+                .expiredAt(now.plusDays(5))
+                .build();
+
+        MemberCoupon usedCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .userId(userId)
+                .status(Status.USED)
+                .issueAt(now.minusDays(5))
+                .expiredAt(now.minusDays(1))
+                .build();
+
+        MemberCoupon expiredCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .userId(userId)
+                .status(Status.EXPIRED)
+                .issueAt(now.minusDays(10))
+                .expiredAt(now.minusDays(1))
+                .build();
+
+        entityManager.persist(validCoupon);
+        entityManager.persist(usedCoupon);
+        entityManager.persist(expiredCoupon);
+
+        List<MemberCoupon> result = memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, now);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStatus()).isEqualTo(Status.ISSUED);
+        assertThat(result.get(0).getExpiredAt()).isAfter(now);
     }
 }
