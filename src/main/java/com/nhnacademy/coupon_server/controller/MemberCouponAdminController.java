@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/admin/member-coupons")
+@RequestMapping("/api/admin/member-coupons")
 @RequiredArgsConstructor
 public class MemberCouponAdminController implements MemberCouponAdminDocs {
 
