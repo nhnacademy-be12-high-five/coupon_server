@@ -1,10 +1,12 @@
 package com.nhnacademy.coupon_server.dto.memberCoupon;
 
+import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 
 @Getter
@@ -19,8 +21,21 @@ public class MemberCouponResponseDto {
     private LocalDateTime usedAt;
     private LocalDateTime expiredAt;
     private Long orderId;
+    private Long discountValue;
+    private String discountType;
+    private String condition;
 
     public static MemberCouponResponseDto fromEntity(MemberCoupon memberCoupon) {
+        CouponPolicy policy = memberCoupon.getCoupon().getCouponPolicy();
+
+        String conditionStr = "";
+        if (policy.getMinOrderValue() != null && policy.getMinOrderValue() > 0) {
+            DecimalFormat df = new DecimalFormat("#,###");
+            conditionStr = df.format(policy.getMinOrderValue()) + "원 이상 구매 시 사용 가능";
+        } else {
+            conditionStr = "조건 없음";
+        }
+
         return MemberCouponResponseDto.builder()
                 .id(memberCoupon.getId())
                 .userId(memberCoupon.getUserId())
@@ -31,6 +46,9 @@ public class MemberCouponResponseDto {
                 .usedAt(memberCoupon.getUsedAt())
                 .expiredAt(memberCoupon.getExpiredAt())
                 .orderId(memberCoupon.getOrderId())
+                .discountValue(policy.getDiscountValue())
+                .discountType(policy.getDiscountType().toString())
+                .condition(conditionStr)
                 .build();
     }
 }
