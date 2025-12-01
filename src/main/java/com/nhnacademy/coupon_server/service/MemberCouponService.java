@@ -27,4 +27,6 @@ public interface MemberCouponService {
     void useCoupon(Long userId, MemberCouponUseRequestDto requestDto);
 
     void cancelCouponUsage(Long userId, MemberCouponCancelRequestDto requestDto);
+
+//    void issueBirthdayCoupon(Long userId, Long couponId);
 }

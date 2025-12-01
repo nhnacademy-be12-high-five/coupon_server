@@ -59,7 +59,7 @@ public class CouponAdminControllerTest {
 
         when(couponService.create(any(CouponRequestDto.class))).thenReturn(responseDto);
 
-        mockMvc.perform(post("/admin/coupons")
+        mockMvc.perform(post("/api/admin/coupons")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(couponRequestDto)))
                 .andDo(print())
@@ -83,7 +83,7 @@ public class CouponAdminControllerTest {
 
         when(couponService.findAll()).thenReturn(List.of(coupon1, coupon2));
 
-        mockMvc.perform(get("/admin/coupons")
+        mockMvc.perform(get("/api/admin/coupons")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -115,7 +115,7 @@ public class CouponAdminControllerTest {
 
         when(couponService.update(eq(couponId), any(CouponRequestDto.class))).thenReturn(responseDto);
 
-        mockMvc.perform(put("/admin/coupons/{couponId}", couponId)
+        mockMvc.perform(put("/api/admin/coupons/{couponId}", couponId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -139,7 +139,7 @@ public class CouponAdminControllerTest {
         doThrow(new CouponNotFoundException("쿠폰을 찾을 수 없습니다."))
                 .when(couponService).update(eq(couponId), any(CouponRequestDto.class));
 
-        mockMvc.perform(put("/admin/coupons/{couponId}", couponId)
+        mockMvc.perform(put("/api/admin/coupons/{couponId}", couponId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -153,7 +153,7 @@ public class CouponAdminControllerTest {
         Long couponId = 100L;
         doNothing().when(couponService).delete(couponId);
 
-        mockMvc.perform(delete("/admin/coupons/{couponId}", couponId))
+        mockMvc.perform(delete("/api/admin/coupons/{couponId}", couponId))
                 .andDo(print())
                 .andExpect(status().isNoContent());
     }
@@ -166,7 +166,7 @@ public class CouponAdminControllerTest {
         doThrow(new CouponNotFoundException("쿠폰을 찾을 수 없습니다."))
                 .when(couponService).delete(couponId);
 
-        mockMvc.perform(delete("/admin/coupons/{couponId}", couponId))
+        mockMvc.perform(delete("/api/admin/coupons/{couponId}", couponId))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }

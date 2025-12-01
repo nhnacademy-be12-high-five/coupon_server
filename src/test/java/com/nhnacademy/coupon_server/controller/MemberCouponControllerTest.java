@@ -57,7 +57,7 @@ class MemberCouponControllerTest {
 
         doNothing().when(memberCouponService).issueCouponByUser(userId, couponId);
 
-        mockMvc.perform(post("/coupons/issue")
+        mockMvc.perform(post("/api/coupons/issue")
                 .header("X-USER-ID", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
@@ -75,7 +75,7 @@ class MemberCouponControllerTest {
         doThrow(new DuplicateCouponException("이미 해당 쿠폰을 발급받으셨습니다."))
                 .when(memberCouponService).issueCouponByUser(userId, couponId);
 
-        mockMvc.perform(post("/coupons/issue")
+        mockMvc.perform(post("/api/coupons/issue")
                 .header("X-USER-ID", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
@@ -93,7 +93,7 @@ class MemberCouponControllerTest {
         doThrow(new IllegalArgumentException("아직 발급 가능한 기간이 아닙니다."))
                 .when(memberCouponService).issueCouponByUser(userId, couponId);
 
-        mockMvc.perform(post("/coupons/issue")
+        mockMvc.perform(post("/api/coupons/issue")
                 .header("X-USER-ID", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
@@ -106,7 +106,7 @@ class MemberCouponControllerTest {
     void issueCouponFailureInvalidRequest() throws Exception {
         UserCouponIssueRequestDto requestDto = new UserCouponIssueRequestDto(null);
 
-        mockMvc.perform(post("/coupons/issue")
+        mockMvc.perform(post("/api/coupons/issue")
                         .header("X-USER-ID", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -128,7 +128,7 @@ class MemberCouponControllerTest {
         when(memberCouponService.findCouponByUserId(eq(userId), any(Pageable.class)))
                 .thenReturn(pageResponse);
 
-        mockMvc.perform(get("/coupons/members/{memberId}", userId)
+        mockMvc.perform(get("/api/coupons/members/{memberId}", userId)
                 .param("page", "0")
                 .param("size", "10")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -157,7 +157,7 @@ class MemberCouponControllerTest {
         when(couponService.findIssuableCoupons(any(Pageable.class)))
                 .thenReturn(mockPage);
 
-        mockMvc.perform(get("/coupons/templates")
+        mockMvc.perform(get("/api/coupons/templates")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -181,7 +181,7 @@ class MemberCouponControllerTest {
 
         when(memberCouponService.findUsableCoupons(userId)).thenReturn(List.of(responseDto));
 
-        mockMvc.perform(get("/coupons/members/{memberId}/order", userId)
+        mockMvc.perform(get("/api/coupons/members/{memberId}/order", userId)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].couponName").value("주문 할인 쿠폰"))
@@ -200,7 +200,7 @@ class MemberCouponControllerTest {
 
         doNothing().when(memberCouponService).useCoupon(any(Long.class), any(MemberCouponUseRequestDto.class));
 
-        mockMvc.perform(post("/coupons/use", userId)
+        mockMvc.perform(post("/api/coupons/use", userId)
                 .header("X-USER-ID", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
@@ -215,7 +215,7 @@ class MemberCouponControllerTest {
 
         MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(100L, null);
 
-        mockMvc.perform(post("/coupons/use", userId)
+        mockMvc.perform(post("/api/coupons/use", userId)
                 .header("X-USER-ID", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
@@ -233,7 +233,7 @@ class MemberCouponControllerTest {
 
         doNothing().when(memberCouponService).cancelCouponUsage(any(Long.class), any(MemberCouponCancelRequestDto.class));
 
-        mockMvc.perform(post("/coupons/cancel")
+        mockMvc.perform(post("/api/coupons/cancel")
                         .header("X-USER-ID", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))

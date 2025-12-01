@@ -56,7 +56,7 @@ public class MemberCouponAdminControllerTest {
 
         when(memberCouponService.findAll(any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get("/admin/member-coupons")
+        mockMvc.perform(get("/api/admin/member-coupons")
                 .param("page", "0")
                 .param("size", "10")
                 .accept(MediaType.APPLICATION_JSON))
@@ -76,7 +76,7 @@ public class MemberCouponAdminControllerTest {
 
         doNothing().when(memberCouponService).issueCouponByAdmin(any(MemberCouponIssueRequestDto.class));
 
-        mockMvc.perform(post("/admin/member-coupons/issue")
+        mockMvc.perform(post("/api/admin/member-coupons/issue")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())

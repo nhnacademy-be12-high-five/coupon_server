@@ -113,9 +113,17 @@ public class MemberCouponServiceTest {
     void findAllTestSuccess() {
         Pageable pageable = PageRequest.of(0, 10);
 
+        CouponPolicy mockPolicy = CouponPolicy.builder()
+                .id(100L)
+                .minOrderValue(10000L)
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .build();
+
         Coupon mockCoupon = Coupon.builder()
                 .id(10L)
                 .couponName("신규 가입 쿠폰")
+                .couponPolicy(mockPolicy)
                 .build();
 
         MemberCoupon memberCoupon = MemberCoupon.builder()
@@ -135,6 +143,8 @@ public class MemberCouponServiceTest {
         Assertions.assertEquals(1, result.getTotalElements());
         Assertions.assertEquals("신규 가입 쿠폰", result.getContent().get(0).getCouponName());
         Assertions.assertEquals(Status.ISSUED, result.getContent().get(0).getStatus());
+
+        Assertions.assertEquals(1000L, result.getContent().get(0).getDiscountValue());
 
         verify(memberCouponRepository, times(1)).findAll(pageable);
     }
@@ -188,9 +198,17 @@ public class MemberCouponServiceTest {
         Long userId = 1L;
         LocalDateTime now = LocalDateTime.now();
 
+        CouponPolicy mockPolicy = CouponPolicy.builder()
+                .id(100L)
+                .minOrderValue(10000L)
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .build();
+
         Coupon mockCoupon = Coupon.builder()
                 .id(1L)
                 .couponName("할인 쿠폰")
+                .couponPolicy(mockPolicy)
                 .build();
 
         MemberCoupon validMemberCoupon = MemberCoupon.builder()
@@ -202,12 +220,15 @@ public class MemberCouponServiceTest {
                 .expiredAt(now.plusDays(10))
                 .build();
 
-        when(memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class))).thenReturn(List.of(validMemberCoupon));
+        when(memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class)))
+                .thenReturn(List.of(validMemberCoupon));
 
         List<MemberCouponResponseDto> result = memberCouponService.findUsableCoupons(userId);
 
         Assertions.assertEquals(1, result.size());
         Assertions.assertEquals("할인 쿠폰", result.get(0).getCouponName());
+
+        Assertions.assertEquals(1000L, result.get(0).getDiscountValue());
 
         verify(memberCouponRepository, times(1)).findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class));
     }

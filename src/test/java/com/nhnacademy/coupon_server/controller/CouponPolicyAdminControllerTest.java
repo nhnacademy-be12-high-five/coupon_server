@@ -68,7 +68,7 @@ class CouponPolicyAdminControllerTest {
         when(couponPolicyService.create(any(CouponPolicyRequestDto.class))).thenReturn(responseDto)
                 .thenReturn(responseDto);
 
-        mockMvc.perform(post("/admin/coupon-policy")
+        mockMvc.perform(post("/api/admin/coupon-policy")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -90,7 +90,7 @@ class CouponPolicyAdminControllerTest {
                 .maxDiscountValue(5000L)
                 .build();
 
-        mockMvc.perform(post("/admin/coupon-policy")
+        mockMvc.perform(post("/api/admin/coupon-policy")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -107,7 +107,7 @@ class CouponPolicyAdminControllerTest {
                 .discountValue(-1000L)
                 .build();
 
-        mockMvc.perform(post("/admin/coupon-policy")
+        mockMvc.perform(post("/api/admin/coupon-policy")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -132,7 +132,7 @@ class CouponPolicyAdminControllerTest {
         when(couponPolicyService.findAll())
                 .thenReturn(List.of(policy1, policy2));
 
-        mockMvc.perform(get("/admin/coupon-policy")
+        mockMvc.perform(get("/api/admin/coupon-policy")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -144,7 +144,7 @@ class CouponPolicyAdminControllerTest {
     @DisplayName("쿠폰 정책 조회 실패 - 서버 내부 오류 발생")
     void getAllPoliciesFailureServerError() throws Exception {
         when(couponPolicyService.findAll()).thenThrow(new RuntimeException("DB 연결 실패 등 예상치 못한 오류"));
-        mockMvc.perform(get("/admin/coupon-policy")
+        mockMvc.perform(get("/api/admin/coupon-policy")
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isInternalServerError());
@@ -162,7 +162,7 @@ class CouponPolicyAdminControllerTest {
 
         when(couponPolicyService.findById(id)).thenReturn(responseDto);
 
-        mockMvc.perform(get("/admin/coupon-policy/{id}", id)
+        mockMvc.perform(get("/api/admin/coupon-policy/{id}", id)
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -176,7 +176,7 @@ class CouponPolicyAdminControllerTest {
         Long id = 999L;
         when(couponPolicyService.findById(id)).thenThrow(new CouponPolicyNotFoundException("정책을 찾을 수 없습니다."));
 
-        mockMvc.perform(get("/admin/coupon-policy/{id}", id)
+        mockMvc.perform(get("/api/admin/coupon-policy/{id}", id)
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isNotFound());
@@ -188,7 +188,7 @@ class CouponPolicyAdminControllerTest {
         Long id = 1L;
         doNothing().when(couponPolicyService).deleteById(id);
 
-        mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
+        mockMvc.perform(delete("/api/admin/coupon-policy/{id}", id))
                 .andDo(print())
                 .andExpect(status().isOk());
     }
@@ -198,7 +198,7 @@ class CouponPolicyAdminControllerTest {
     void deletePoliciesFailure() throws Exception {
         Long id = 999L;
         doThrow(new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다.")).when(couponPolicyService).deleteById(id);
-        mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
+        mockMvc.perform(delete("/api/admin/coupon-policy/{id}", id))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
@@ -213,7 +213,7 @@ class CouponPolicyAdminControllerTest {
                 .discountValue(1000L)
                 .build();
 
-        mockMvc.perform(post("/admin/coupon-policy")
+        mockMvc.perform(post("/api/admin/coupon-policy")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
                 .andDo(print())
@@ -226,7 +226,7 @@ class CouponPolicyAdminControllerTest {
         when(couponPolicyService.findAll())
                 .thenThrow(new RuntimeException("DB 연결 끊김 등 심각한 오류"));
 
-        mockMvc.perform(post("/admin/coupon-policy")
+        mockMvc.perform(post("/api/admin/coupon-policy")
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isInternalServerError())
@@ -240,7 +240,7 @@ class CouponPolicyAdminControllerTest {
         doThrow(new CouponPolicyNotFoundException("쿠폰을 찾을 수 없습니다."))
                 .when(couponPolicyService).deleteById(id);
 
-        mockMvc.perform(delete("/admin/coupon-policy/{id}", id))
+        mockMvc.perform(delete("/api/admin/coupon-policy/{id}", id))
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$").value("쿠폰을 찾을 수 없습니다."));
