@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Component
 public class CouponDateCalculator {
+    // 쿠폰 유효기간 관련 로직 추가
     public LocalDateTime calculateExpiration(Coupon coupon) {
         if (coupon.getValidEndAt() != null) {
             return coupon.getValidEndAt();
