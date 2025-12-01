@@ -50,3 +50,4 @@
 //        log.info("{}월 생일 쿠폰 발급 완료. 대상: {}명, 성공: {}명", currentMonth,birthdayUserIds.size(), successCount);
 //    }
 //}
+// 수정중
