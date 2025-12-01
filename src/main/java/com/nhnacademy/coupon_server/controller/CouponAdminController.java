@@ -15,7 +15,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/api/admin/coupons")
+@RequestMapping("/api/coupons/admin/coupons")
 @RequiredArgsConstructor
 @Slf4j
 public class CouponAdminController implements CouponAdminDocs {

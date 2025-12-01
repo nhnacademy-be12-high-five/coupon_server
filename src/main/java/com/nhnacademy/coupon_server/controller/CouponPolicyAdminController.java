@@ -16,7 +16,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/admin/coupon-policy")
+@RequestMapping("/api/coupons/admin/coupon-policy")
 public class CouponPolicyAdminController implements CouponPolicyAdminDocs {
     private final CouponPolicyService couponPolicyService;
 
