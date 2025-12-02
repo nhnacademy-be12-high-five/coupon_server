@@ -15,12 +15,6 @@ public interface CouponService {
     // 쿠폰 템플릿 목록 조회
     List<CouponResponseDto> findAll();
 
-    //쿠폰 템플릿 수정
-    CouponResponseDto update(Long id, CouponRequestDto couponRequestDto);
-
-    //쿠폰 템플릿 삭제
-    void delete(Long id);
-
     //발급 가능한 쿠폰 목록 조회
     Page<CouponResponseDto> findIssuableCoupons(Pageable pageable);
 }

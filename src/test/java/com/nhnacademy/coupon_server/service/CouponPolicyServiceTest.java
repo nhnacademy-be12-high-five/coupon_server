@@ -10,6 +10,7 @@ import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
+import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponPolicyServiceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,8 @@ class CouponPolicyServiceTest {
     private CouponPolicyBookRepository couponPolicyBookRepository;
     @Mock
     private CouponPolicyCategoryRepository couponPolicyCategoryRepository;
+    @Mock
+    private MemberCouponRepository memberCouponRepository;
 
     @InjectMocks
     private CouponPolicyServiceImpl couponPolicyService;

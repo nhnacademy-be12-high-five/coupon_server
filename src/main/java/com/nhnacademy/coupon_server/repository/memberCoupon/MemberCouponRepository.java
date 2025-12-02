@@ -25,4 +25,7 @@ public interface MemberCouponRepository extends JpaRepository<MemberCoupon, Long
 
     @EntityGraph(attributePaths = {"coupon", "coupon.couponPolicy"})
     Optional<MemberCoupon> findByUserIdAndCouponId(Long userId, Long couponId);
+
+    List<MemberCoupon> findAllByCouponCouponPolicyIdAndStatus(Long policyId, Status status);
+
 }

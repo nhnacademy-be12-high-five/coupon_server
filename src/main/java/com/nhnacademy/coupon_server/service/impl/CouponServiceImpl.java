@@ -4,7 +4,7 @@ import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
-import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
+import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
@@ -58,50 +58,21 @@ public class CouponServiceImpl implements CouponService {
         log.info("모든 쿠폰 템플릿 조회 요청");
 
         return couponRepository.findAll().stream()
-                .map(CouponResponseDto::fromEntity)
+                .map(coupon -> {
+                    Integer remainingCount = null;
+                    if (coupon.getIssueCount() != null) {
+                        long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issuedCount);
+                    }
+                    return CouponResponseDto.fromEntity(coupon, remainingCount);
+                })
                 .toList();
-    }
-
-    @Override
-    @Transactional
-    public CouponResponseDto update(Long id, CouponRequestDto couponRequestDto) {
-        log.info("쿠폰 템플릿 수정 요청 - ID -> {}", id);
-
-        Coupon coupon = couponRepository.findById(id)
-                .orElseThrow(() -> new CouponNotFoundException("쿠폰 템플릿을 찾을 수 없습니다. ID -> " + id));
-
-        CouponPolicy couponPolicy = couponPolicyRepository.findById(couponRequestDto.getId())
-                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다, ID -> " + couponRequestDto.getId()));
-
-        coupon.update(
-                couponPolicy,
-                couponRequestDto.getCouponName(),
-                couponRequestDto.getDescription(),
-                couponRequestDto.getIssueCount(),
-                couponRequestDto.getIssueStartAt(),
-                couponRequestDto.getIssueEndAt(),
-                couponRequestDto.getValidPeriodDate(),
-                couponRequestDto.getValidEndAt()
-        );
-        return CouponResponseDto.fromEntity(coupon);
-    }
-
-    @Override
-    @Transactional
-    public void delete(Long id) {
-        log.info("쿠폰 템플릿 삭제 요청 - ID: {}", id);
-
-        if (!couponRepository.existsById(id)) {
-            throw new CouponPolicyNotFoundException("삭제할 쿠폰 템플릿이 존재하지 않습니다. ID: " + id);
-        }
-
-        couponRepository.deleteById(id);
     }
 
     @Override
     public Page<CouponResponseDto> findIssuableCoupons(Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
-        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfter(now, now, pageable);
+        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatus(now, now, CouponPolicyStatus.ACTIVE, pageable);
         return coupons.map(coupon -> {
             Integer remainingCount = null;
             if (coupon.getIssueCount() != null) {

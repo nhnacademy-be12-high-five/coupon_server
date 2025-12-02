@@ -46,23 +46,4 @@ public class Coupon {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "coupon_policy_id", nullable = false)
     private CouponPolicy couponPolicy;
-
-    public void update(CouponPolicy couponPolicy,
-                       String couponName,
-                       String description,
-                       Integer issueCount,
-                       LocalDateTime issuedStartAt,
-                       LocalDateTime issuedEndAt,
-                       Integer validPeriodDate,
-                       LocalDateTime validEndAt
-    ) {
-        this.couponPolicy = couponPolicy;
-        this.couponName = couponName;
-        this.description = description;
-        this.issueCount = issueCount;
-        this.issuedStartAt = issuedStartAt;
-        this.issuedEndAt = issuedEndAt;
-        this.validPeriodDate = validPeriodDate;
-        this.validEndAt = validEndAt;
-    }
 }

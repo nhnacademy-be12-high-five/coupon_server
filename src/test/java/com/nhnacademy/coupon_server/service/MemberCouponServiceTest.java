@@ -10,6 +10,7 @@ import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
@@ -65,16 +66,23 @@ public class MemberCouponServiceTest {
         Long couponId = 10L;
         LocalDateTime expectedDate = LocalDateTime.now().plusDays(30);
 
-        Coupon mockCoupon = Coupon.builder().id(couponId).build();
-
         MemberCouponIssueRequestDto requestDto = MemberCouponIssueRequestDto.builder()
                 .userId(userId)
                 .couponId(couponId)
                 .build();
 
-        when(couponRepository.findById(couponId)).thenReturn(Optional.of(mockCoupon));
+        CouponPolicy couponPolicy = CouponPolicy.builder()
+                .status(CouponPolicyStatus.ACTIVE)
+                .build();
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .couponPolicy(couponPolicy)
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
-        when(dateCalculator.calculateExpiration(mockCoupon)).thenReturn(expectedDate);
+        when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
 
         memberCouponService.issueCouponByAdmin(requestDto);
 
@@ -97,7 +105,16 @@ public class MemberCouponServiceTest {
                 .couponId(couponId)
                 .build();
 
-        when(couponRepository.findById(couponId)).thenReturn(Optional.of(Coupon.builder().build()));
+        CouponPolicy couponPolicy = CouponPolicy.builder()
+                .status(CouponPolicyStatus.ACTIVE)
+                .build();
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .couponPolicy(couponPolicy)
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(true);
 
         // When & Then
@@ -169,8 +186,13 @@ public class MemberCouponServiceTest {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expirationDate = now.plusDays(30);
 
+        CouponPolicy couponPolicy = CouponPolicy.builder()
+                .status(CouponPolicyStatus.ACTIVE)
+                .build();
+
         Coupon coupon = Coupon.builder()
                 .id(couponId)
+                .couponPolicy(couponPolicy)
                 .issueCount(100)
                 .issuedStartAt(now.minusDays(1))
                 .issuedEndAt(now.plusDays(1))

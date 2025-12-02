@@ -10,6 +10,7 @@ import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
@@ -50,6 +51,9 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         log.info("관리자 수동 발급 요청 - Coupon: {}, User: {}", couponId, userId);
 
         Coupon coupon = couponRepository.findById(couponId).orElseThrow(() -> new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID: " + couponId));
+        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+            throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 발급할 수 없습니다.");
+        }
         if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
             throw new DuplicateCouponException("이미 해당 쿠폰을 보유하고 있는 회원입니다.");
         }
@@ -85,6 +89,9 @@ public class MemberCouponServiceImpl implements MemberCouponService {
             if (currentCount >= coupon.getIssueCount()) {
                 throw new IllegalStateException("발급 기간이 지났습니다.");
             }
+        }
+        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+            throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 더 이상 발급받을 수 없습니다.");
         }
 
         if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {

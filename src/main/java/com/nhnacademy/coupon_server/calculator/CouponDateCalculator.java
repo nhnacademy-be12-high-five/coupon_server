@@ -13,7 +13,7 @@ public class CouponDateCalculator {
             return coupon.getValidEndAt();
         }
 
-        if (coupon.getValidPeriodDate() != null && coupon.getValidPeriodDate() > 0) {
+        if (coupon.getValidPeriodDate() != null && coupon.getValidPeriodDate() >= 0) {
             return LocalDateTime.now().plusDays(coupon.getValidPeriodDate());
         }
 

@@ -5,10 +5,13 @@ import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
+import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
+import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     private final CouponPolicyRepository couponPolicyRepository;
     private final CouponPolicyBookRepository couponPolicyBookRepository;
     private final CouponPolicyCategoryRepository couponPolicyCategoryRepository;
+    private final MemberCouponRepository memberCouponRepository;
 
     @Override
     @Transactional
@@ -93,5 +97,12 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                 .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
 
         policy.disable();
+        List<MemberCoupon> issuedCoupons = memberCouponRepository.findAllByCouponCouponPolicyIdAndStatus(id, Status.ISSUED);
+
+        for (MemberCoupon coupon : issuedCoupons) {
+            coupon.setStatus(Status.EXPIRED);
+        }
+
+        log.info("정책 ID {} 관련 미사용 쿠폰 {}장 만료 처리 완료", id, issuedCoupons.size());
     }
 }
