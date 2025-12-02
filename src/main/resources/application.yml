@@ -1,9 +1,9 @@
 spring:
   application:
     name: TEAM5-COUPON-SERVER
-  cloud:
-    config:
-      enabled: false
+#  cloud:
+#    config:
+#      enabled: false
   config:
     import: "optional:configserver:"
 
