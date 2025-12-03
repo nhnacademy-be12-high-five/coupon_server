@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon_server.dto.coupon;
 
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -20,6 +21,8 @@ public class CouponRequestDto {
 
     @NotNull(message = "쿠폰 이름은 필수입니다.")
     private String couponName;
+
+    private CouponType couponType;
 
     private String description;
 

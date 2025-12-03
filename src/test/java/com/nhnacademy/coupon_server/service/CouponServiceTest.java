@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
@@ -146,7 +147,7 @@ class CouponServiceTest {
         List<Coupon> coupons = List.of(limitedCoupon, unlimitedCoupon);
         Page<Coupon> couponPage = new PageImpl<>(coupons);
 
-        when(couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatus(any(), any(), eq(CouponPolicyStatus.ACTIVE), eq(pageable))).thenReturn(couponPage);
+        when(couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(any(), any(), eq(CouponPolicyStatus.ACTIVE), eq(CouponType.NORMAL), eq(pageable))).thenReturn(couponPage);
 
         when(memberCouponRepository.countByCouponId(1L)).thenReturn(10L);
         Page<CouponResponseDto> result = couponService.findIssuableCoupons(pageable);

@@ -21,6 +21,7 @@ public class CouponResponseDto {
     private LocalDateTime validEndAt;
     private Integer remainingCount;
     private String status;
+    private String couponType;
 
     public static CouponResponseDto fromEntity(Coupon coupon) {
         return fromEntity(coupon, null);
@@ -52,8 +53,8 @@ public class CouponResponseDto {
                 .validPeriodDate(coupon.getValidPeriodDate())
                 .validEndAt(coupon.getValidEndAt())
                 .remainingCount(remainingCount)
-                .status(coupon.getCouponPolicy().getStatus().toString())
                 .status(status)
+                .couponType(coupon.getCouponType().toString())
                 .build();
     }
 }

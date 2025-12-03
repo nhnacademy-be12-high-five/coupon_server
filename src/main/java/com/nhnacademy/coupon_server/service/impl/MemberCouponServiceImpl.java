@@ -87,7 +87,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         if (coupon.getIssueCount() != null) {
             long currentCount = memberCouponRepository.countByCouponId(couponId);
             if (currentCount >= coupon.getIssueCount()) {
-                throw new IllegalStateException("발급 기간이 지났습니다.");
+                throw new IllegalStateException("수량이 모두 매진되었습니다.");
             }
         }
         if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {

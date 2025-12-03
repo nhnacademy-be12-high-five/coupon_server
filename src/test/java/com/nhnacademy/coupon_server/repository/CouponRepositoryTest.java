@@ -4,6 +4,7 @@ import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +83,7 @@ class CouponRepositoryTest {
 
         Pageable pageable = PageRequest.of(0, 10);
 
-        Page<Coupon> result = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatus(now, now, CouponPolicyStatus.ACTIVE, pageable);
+        Page<Coupon> result = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(now, now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getCouponName()).isEqualTo("발급 가능 쿠폰");

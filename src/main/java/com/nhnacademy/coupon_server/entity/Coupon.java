@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon_server.entity;
 
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,11 @@ public class Coupon {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "coupon_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private CouponType couponType = CouponType.NORMAL;
 
     @Column(name = "issue_count")
     private Integer issueCount;

@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
@@ -13,6 +14,7 @@ import com.nhnacademy.coupon_server.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,7 @@ public class CouponServiceImpl implements CouponService {
                 .issuedEndAt(couponRequestDto.getIssueEndAt())
                 .validPeriodDate(couponRequestDto.getValidPeriodDate())
                 .validEndAt(couponRequestDto.getValidEndAt())
+                .couponType(couponRequestDto.getCouponType() != null ? couponRequestDto.getCouponType() : CouponType.NORMAL)
                 .build();
 
         Coupon savedCoupon = couponRepository.save(coupon);
@@ -72,15 +75,21 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public Page<CouponResponseDto> findIssuableCoupons(Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
-        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatus(now, now, CouponPolicyStatus.ACTIVE, pageable);
-        return coupons.map(coupon -> {
-            Integer remainingCount = null;
-            if (coupon.getIssueCount() != null) {
-                long issueCount = memberCouponRepository.countByCouponId(coupon.getId());
-                remainingCount = Math.max(0, coupon.getIssueCount() - (int) issueCount);
-            }
+        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(
+                now, now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
+        );
+        List<CouponResponseDto> filteredList = coupons.stream()
+                .map(coupon -> {
+                    Integer remainingCount = null;
+                    if (coupon.getIssueCount() != null) {
+                        long issueCount = memberCouponRepository.countByCouponId(coupon.getId());
+                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issueCount);
+                    }
+                    return CouponResponseDto.fromEntity(coupon, remainingCount);
+                })
+                .filter(dto -> dto.getRemainingCount() == null || dto.getRemainingCount() > 0)
+                .toList();
 
-            return CouponResponseDto.fromEntity(coupon, remainingCount);
-        });
+        return new PageImpl<>(filteredList, pageable, filteredList.size());
     }
 }
