@@ -100,7 +100,7 @@ Content-Type: application/json
 ### [14] 쿠폰 발급 신청
 POST http://localhost:8080/api/coupons/issue
 Content-Type: application/json
-X-USER-ID: 1
+Authorization: Bearer {{access_token}}
 
 {
   "couponId": 1
