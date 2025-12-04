@@ -1,12 +1,12 @@
 package com.nhnacademy.coupon_server.service.impl;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
-import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationResponseDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
@@ -202,30 +202,30 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         memberCoupon.cancel();
     }
 
-//    @Override
-//    @Transactional
-//    public void issueBirthdayCoupon(Long userId, Long couponId) {
-//        log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", userId, couponId);
-//
-//        Coupon coupon = couponRepository.findById(couponId)
-//                .orElseThrow(() -> new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID : " + couponId));
-//
-//        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-//            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", userId);
-//            return;
-//        }
-//
-//        LocalDateTime now = LocalDateTime.now();
-//        LocalDateTime endOfMonth = now.withDayOfMonth(now.toLocalDate().lengthOfMonth())
-//                .withHour(23).withMinute(59).withSecond(59);
-//
-//        MemberCoupon memberCoupon = MemberCoupon.builder()
-//                .coupon(coupon)
-//                .userId(userId)
-//                .status(Status.ISSUED)
-//                .issueAt(now)
-//                .expiredAt(endOfMonth)
-//                .build();
-//        memberCouponRepository.save(memberCoupon);
-//    }
+    @Override
+    @Transactional
+    public void issueBirthdayCoupon(Long userId, Long couponId) {
+        log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", userId, couponId);
+
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID : " + couponId));
+
+        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", userId);
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endOfMonth = now.withDayOfMonth(now.toLocalDate().lengthOfMonth())
+                .withHour(23).withMinute(59).withSecond(59);
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .userId(userId)
+                .status(Status.ISSUED)
+                .issueAt(now)
+                .expiredAt(endOfMonth)
+                .build();
+        memberCouponRepository.save(memberCoupon);
+    }
 }

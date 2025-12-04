@@ -1,11 +1,11 @@
 package com.nhnacademy.coupon_server.service;
 
-import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationResponseDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -28,5 +28,5 @@ public interface MemberCouponService {
 
     void cancelCouponUsage(Long userId, MemberCouponCancelRequestDto requestDto);
 
-//    void issueBirthdayCoupon(Long userId, Long couponId);
+    void issueBirthdayCoupon(Long userId, Long couponId);
 }

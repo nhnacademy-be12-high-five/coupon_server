@@ -1,9 +1,12 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
-import com.nhnacademy.coupon_server.dto.coupon.*;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
+import com.nhnacademy.coupon_server.dto.request.UserCouponIssueRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -32,10 +35,9 @@ public interface MemberCouponDocs {
     })
     @PostMapping("/issue")
     ResponseEntity<Void> issueCoupon(
-            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
-            @RequestHeader("X-USER-ID") Long userId,
-
-            @Valid @RequestBody UserCouponIssueRequestDto requestDto
+            @Parameter(description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long memberId,
+            @RequestBody UserCouponIssueRequestDto requestDto
     );
 
     @Operation(summary = "사용자 쿠폰 목록 조회", description = "사용자가 보유한 쿠폰 목록을 조회합니다. (페이징 적용)")
@@ -45,8 +47,8 @@ public interface MemberCouponDocs {
     })
     @GetMapping("/members/{memberId}")
     ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(
-            @Parameter(name = "memberId", description = "조회할 사용자 ID", required = true, in = ParameterIn.PATH, example = "1")
-            @PathVariable Long memberId,
+            @Parameter(name = "memberId", description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long memberId,
             @Parameter(hidden = true) Pageable pageable
     );
 
@@ -59,8 +61,8 @@ public interface MemberCouponDocs {
     @Operation(summary = "주문 시 적용 가능 쿠폰 조회", description = "주문서 작성 시 사용자가 보유한 쿠폰 중 사용 가능한(미사용, 유효기간 내) 쿠폰 목록을 조회합니다.")
     @GetMapping("/members/{memberId}/order")
     ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(
-            @Parameter(name = "memberId", description = "조회할 사용자 ID", required = true, in = ParameterIn.PATH, example = "1")
-            @PathVariable Long memberId
+            @Parameter(name = "memberId", description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long memberId
     );
 
     @Operation(summary = "쿠폰 할인 금액 계산", description = "주문 금액에 대해 특정 쿠폰을 적용했을 때의 할인 금액을 계산하고 유효성을 검증합니다.")
@@ -70,8 +72,8 @@ public interface MemberCouponDocs {
     })
     @PostMapping("/calculate")
     ResponseEntity<CouponCalculationResponseDto> calculateCoupon(
-            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
-            @RequestHeader("X-USER-ID") Long userId,
+            @Parameter(description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long memberId,
             @Valid @RequestBody CouponCalculationRequestDto requestDto
     );
 
@@ -83,8 +85,8 @@ public interface MemberCouponDocs {
     })
     @PostMapping("/use")
     ResponseEntity<Void> useCoupon(
-            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
-            @RequestHeader("X-USER-ID") Long userId,
+            @Parameter(description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long memberId,
             @Valid @RequestBody MemberCouponUseRequestDto requestDto
     );
 
@@ -96,8 +98,8 @@ public interface MemberCouponDocs {
     })
     @PostMapping("/cancel")
     ResponseEntity<Void> cancelCouponUsage(
-            @Parameter(description = "사용자 ID (HTTP Header)", required = true, in = ParameterIn.HEADER, example = "1")
-            @RequestHeader("X-USER-ID") Long userId,
+            @Parameter(description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
+            @RequestHeader("X-USER-ID") Long memberId,
             @Valid @RequestBody MemberCouponCancelRequestDto requestDto
     );
 }

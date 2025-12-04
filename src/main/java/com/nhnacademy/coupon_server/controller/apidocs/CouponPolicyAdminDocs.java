@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
-import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponPolicyResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;

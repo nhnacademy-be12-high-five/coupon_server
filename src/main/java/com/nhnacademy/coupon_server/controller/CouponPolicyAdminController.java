@@ -1,8 +1,8 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.nhnacademy.coupon_server.controller.apidocs.CouponPolicyAdminDocs;
-import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyRequestDto;
-import com.nhnacademy.coupon_server.dto.couponPolicy.CouponPolicyResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponPolicyRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.service.CouponPolicyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

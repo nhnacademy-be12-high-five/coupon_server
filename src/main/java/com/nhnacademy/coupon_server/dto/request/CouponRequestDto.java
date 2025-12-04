@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon_server.dto.coupon;
+package com.nhnacademy.coupon_server.dto.request;
 
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import jakarta.validation.constraints.Future;

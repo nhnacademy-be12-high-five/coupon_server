@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
