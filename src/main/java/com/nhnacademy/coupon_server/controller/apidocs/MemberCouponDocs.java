@@ -45,7 +45,7 @@ public interface MemberCouponDocs {
             @ApiResponse(responseCode = "200", description = "쿠폰 목록 조회 성공",
                     content = @Content(schema = @Schema(implementation = MemberCouponResponseDto.class)))
     })
-    @GetMapping("/members/{memberId}")
+    @GetMapping("/members")
     ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(
             @Parameter(name = "memberId", description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
             @RequestHeader("X-USER-ID") Long memberId,
