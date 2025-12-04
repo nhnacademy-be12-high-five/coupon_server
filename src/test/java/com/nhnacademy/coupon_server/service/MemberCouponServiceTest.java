@@ -1,18 +1,19 @@
 package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
-import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.CouponCalculationResponseDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
+import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.exception.GlobalExceptionHandler;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
@@ -33,7 +34,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.lang.reflect.Member;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -542,5 +542,180 @@ public class MemberCouponServiceTest {
         Assertions.assertThrows(IllegalArgumentException.class, () ->
                 memberCouponService.cancelCouponUsage(userId, req)
         );
+    }
+
+    @Test
+    @DisplayName("사용 가능 쿠폰 조회 - 최소 주문 금액이 Null일 때 '조건 없음' 반환 확인")
+    void findUsableCouponsMinOrderValueNull() {
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .minOrderValue(null)
+                .build();
+
+        Coupon coupon = Coupon.builder()
+                .couponPolicy(policy)
+                .couponName("조건 없는 쿠폰")
+                .build();
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .id(1L)
+                .userId(userId)
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .expiredAt(now.plusDays(7))
+                .build();
+
+        when(memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class)))
+                .thenReturn(List.of(memberCoupon));
+
+        List<MemberCouponResponseDto> result = memberCouponService.findUsableCoupons(userId);
+
+        Assertions.assertFalse(result.isEmpty());
+        Assertions.assertEquals("조건 없음", result.get(0).getCondition());
+    }
+
+    @Test
+    @DisplayName("사용 가능 쿠폰 조회 - 최소 주문 금액이 0원일 때 '조건 없음' 반환 확인")
+    void findUsableCouponsMinOrderValueZero() {
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .minOrderValue(0L)
+                .build();
+
+        Coupon coupon = Coupon.builder()
+                .couponPolicy(policy)
+                .couponName("0원 이상 쿠폰")
+                .build();
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .id(2L)
+                .userId(userId)
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .expiredAt(now.plusDays(7))
+                .build();
+
+        when(memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(eq(userId), eq(Status.ISSUED), any(LocalDateTime.class)))
+                .thenReturn(List.of(memberCoupon));
+
+        List<MemberCouponResponseDto> result = memberCouponService.findUsableCoupons(userId);
+
+        Assertions.assertFalse(result.isEmpty());
+        Assertions.assertEquals("조건 없음", result.get(0).getCondition());
+    }
+
+    @Test
+    @DisplayName("생일 쿠폰 발급 성공 - 만료일이 해당 월의 마지막 날로 설정되는지 확인")
+    void issueBirthdayCouponSuccess() {
+
+        Long userId = 1L;
+        Long couponId = 100L;
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .couponName("생일 축하 쿠폰")
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
+
+        memberCouponService.issueBirthdayCoupon(userId, couponId);
+
+        ArgumentCaptor<MemberCoupon> captor = ArgumentCaptor.forClass(MemberCoupon.class);
+        verify(memberCouponRepository, times(1)).save(captor.capture());
+
+        MemberCoupon savedCoupon = captor.getValue();
+        Assertions.assertEquals(userId, savedCoupon.getUserId());
+        Assertions.assertEquals(Status.ISSUED, savedCoupon.getStatus());
+        Assertions.assertEquals(coupon, savedCoupon.getCoupon());
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expectedExpiration = now.withDayOfMonth(now.toLocalDate().lengthOfMonth())
+                .withHour(23).withMinute(59).withSecond(59);
+
+        Assertions.assertEquals(expectedExpiration.getYear(), savedCoupon.getExpiredAt().getYear());
+        Assertions.assertEquals(expectedExpiration.getMonth(), savedCoupon.getExpiredAt().getMonth());
+        Assertions.assertEquals(expectedExpiration.getDayOfMonth(), savedCoupon.getExpiredAt().getDayOfMonth());
+        Assertions.assertEquals(expectedExpiration.getHour(), savedCoupon.getExpiredAt().getHour());
+        Assertions.assertEquals(expectedExpiration.getMinute(), savedCoupon.getExpiredAt().getMinute());
+    }
+
+    @Test
+    @DisplayName("생일 쿠폰 발급 실패 - 존재하지 않는 쿠폰 ID")
+    void issueBirthdayCouponFailureCouponNotFound() {
+        Long userId = 1L;
+        Long couponId = 999L;
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(CouponNotFoundException.class, () ->
+                memberCouponService.issueBirthdayCoupon(userId, couponId)
+        );
+
+        verify(memberCouponRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("생일 쿠폰 발급 실패 - 이미 발급받은 경우 (중복 발급 방지)")
+    void issueBirthdayCouponFailureAlreadyIssued() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder().id(couponId).build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(true); // 이미 존재함
+
+        memberCouponService.issueBirthdayCoupon(userId, couponId);
+
+        verify(memberCouponRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("특정 사용자의 쿠폰 목록 조회 성공 (페이징)")
+    void findCouponByUserIdSuccess() {
+        Long userId = 1L;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .minOrderValue(5000L)
+                .build();
+
+        Coupon coupon = Coupon.builder()
+                .id(100L)
+                .couponName("사용자 조회 테스트 쿠폰")
+                .couponPolicy(policy)
+                .build();
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .id(1L)
+                .userId(userId)
+                .coupon(coupon)
+                .status(Status.ISSUED)
+                .issueAt(LocalDateTime.now())
+                .expiredAt(LocalDateTime.now().plusDays(30))
+                .build();
+
+        Page<MemberCoupon> memberCouponPage = new PageImpl<>(List.of(memberCoupon));
+
+        when(memberCouponRepository.findByUserId(userId, pageable)).thenReturn(memberCouponPage);
+
+        Page<MemberCouponResponseDto> result = memberCouponService.findCouponByUserId(userId, pageable);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.getTotalElements());
+        Assertions.assertEquals("사용자 조회 테스트 쿠폰", result.getContent().get(0).getCouponName()); // 변환된 값 확인
+        Assertions.assertEquals(Status.ISSUED, result.getContent().get(0).getStatus());
+
+        verify(memberCouponRepository, times(1)).findByUserId(userId, pageable);
     }
 }

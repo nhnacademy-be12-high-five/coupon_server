@@ -17,4 +17,9 @@ public interface CouponService {
 
     //발급 가능한 쿠폰 목록 조회
     Page<CouponResponseDto> findIssuableCoupons(Pageable pageable);
+
+    /**
+     * 쿠폰 목록 조회 (페이징, 상태 계산 포함)
+     */
+    Page<CouponResponseDto> getCoupons(Pageable pageable);
 }
