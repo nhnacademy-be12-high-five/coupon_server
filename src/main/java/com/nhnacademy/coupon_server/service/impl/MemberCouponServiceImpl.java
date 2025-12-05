@@ -204,14 +204,14 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
     @Override
     @Transactional
-    public void issueBirthdayCoupon(Long userId, Long couponId) {
-        log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", userId, couponId);
+    public void issueBirthdayCoupon(Long memberId, Long couponId) {
+        log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", memberId, couponId);
 
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(() -> new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID : " + couponId));
 
-        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", userId);
+        if (memberCouponRepository.existsByUserIdAndCouponId(memberId, couponId)) {
+            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", memberId);
             return;
         }
 
@@ -221,11 +221,35 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         MemberCoupon memberCoupon = MemberCoupon.builder()
                 .coupon(coupon)
-                .userId(userId)
+                .userId(memberId)
                 .status(Status.ISSUED)
                 .issueAt(now)
                 .expiredAt(endOfMonth)
                 .build();
         memberCouponRepository.save(memberCoupon);
+    }
+
+    @Override
+    @Transactional
+    public void issueWelcomeCoupon(Long memberId) {
+        log.info("웰컴 쿠폰 자동 지급 시도 - User: {}", memberId);
+        Coupon welcomeCoupon = couponRepository.findWelcomeCoupon()
+                .orElseThrow(() -> new CouponNotFoundException("현재 진행중인 웰컴 쿠폰 이벤트가 없습니다."));
+
+        if (memberCouponRepository.existsByUserIdAndCouponId(memberId, welcomeCoupon.getId())) {
+            log.info("이미 웰컴 쿠폰을 받은 회원입니다. User: {}", memberId);
+            return;
+        }
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(welcomeCoupon)
+                .userId(memberId)
+                .status(Status.ISSUED)
+                .issueAt(LocalDateTime.now())
+                .expiredAt(dateCalculator.calculateExpiration(welcomeCoupon))
+                .build();
+
+        memberCouponRepository.save(memberCoupon);
+        log.info("웰컴 쿠폰 지급 완료! User: {}, Coupon: {}", memberId, welcomeCoupon.getCouponName());
     }
 }
