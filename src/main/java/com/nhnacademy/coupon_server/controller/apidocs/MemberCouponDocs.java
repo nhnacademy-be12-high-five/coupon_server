@@ -37,7 +37,7 @@ public interface MemberCouponDocs {
     ResponseEntity<Void> issueCoupon(
             @Parameter(description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
             @RequestHeader("X-USER-ID") Long memberId,
-            @RequestBody UserCouponIssueRequestDto requestDto
+            @Valid @RequestBody UserCouponIssueRequestDto requestDto
     );
 
     @Operation(summary = "사용자 쿠폰 목록 조회", description = "사용자가 보유한 쿠폰 목록을 조회합니다. (페이징 적용)")
@@ -59,7 +59,7 @@ public interface MemberCouponDocs {
     );
 
     @Operation(summary = "주문 시 적용 가능 쿠폰 조회", description = "주문서 작성 시 사용자가 보유한 쿠폰 중 사용 가능한(미사용, 유효기간 내) 쿠폰 목록을 조회합니다.")
-    @GetMapping("/members/{memberId}/order")
+    @GetMapping("/members/order")
     ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(
             @Parameter(name = "memberId", description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
             @RequestHeader("X-USER-ID") Long memberId

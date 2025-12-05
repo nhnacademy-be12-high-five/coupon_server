@@ -10,11 +10,13 @@ import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.request.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.service.CouponService;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,7 +56,8 @@ public class MemberCouponController implements MemberCouponDocs {
     }
 
     @Override
-    public ResponseEntity<CouponCalculationResponseDto> calculateCoupon(@RequestHeader("X-USER-ID") Long memberId, CouponCalculationRequestDto requestDto) {
+    public ResponseEntity<CouponCalculationResponseDto> calculateCoupon(@RequestHeader("X-USER-ID") Long memberId,
+                                                                        @Valid @RequestBody CouponCalculationRequestDto requestDto) {
         CouponCalculationResponseDto responseDto = memberCouponService.calculateDiscount(memberId, requestDto);
         return ResponseEntity.ok(responseDto);
     }

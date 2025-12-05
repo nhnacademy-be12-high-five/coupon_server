@@ -1,13 +1,15 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponCancelRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.MemberCouponUseRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.UserCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.UserCouponIssueRequestDto;
 import com.nhnacademy.coupon_server.entity.state.Status;
+import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.service.CouponService;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
@@ -28,14 +30,17 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(
         controllers = MemberCouponController.class,
         properties = {"spring.cloud.config.enabled=false"}
 )
 class MemberCouponControllerTest {
+    private static final Long VALID_ORDER_PRICE = 30000L;
+    private static final Long EXPECTED_DISCOUNT = 5000L;
+    private static final Long EXPECTED_FINAL_PRICE = 25000L;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -128,7 +133,8 @@ class MemberCouponControllerTest {
         when(memberCouponService.findCouponByUserId(eq(userId), any(Pageable.class)))
                 .thenReturn(pageResponse);
 
-        mockMvc.perform(get("/api/coupons/members/{memberId}", userId)
+        mockMvc.perform(get("/api/coupons/members")
+                .header("X-USER-ID", userId)
                 .param("page", "0")
                 .param("size", "10")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -181,7 +187,8 @@ class MemberCouponControllerTest {
 
         when(memberCouponService.findUsableCoupons(userId)).thenReturn(List.of(responseDto));
 
-        mockMvc.perform(get("/api/coupons/members/{memberId}/order", userId)
+        mockMvc.perform(get("/api/coupons/members/order")
+                .header("X-USER-ID", userId)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].couponName").value("주문 할인 쿠폰"))
@@ -195,6 +202,9 @@ class MemberCouponControllerTest {
         Long userId = 1L;
         Long couponId = 100L;
         Long orderId = 20251127L;
+        Long totalOrderPrice = VALID_ORDER_PRICE;
+        Long expectedDiscount = EXPECTED_DISCOUNT;
+        Long expectedFinalPrice = EXPECTED_FINAL_PRICE;
 
         MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, orderId);
 
@@ -238,5 +248,110 @@ class MemberCouponControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 금액 계산 성공 (200)")
+    void calculateCouponSuccess() throws Exception {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long totalOrderPrice = 30000L;
+        Long expectedDiscount = 5000L;
+        Long expectedFinalPrice = 25000L;
+
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(couponId, totalOrderPrice);
+
+        CouponCalculationResponseDto responseDto = CouponCalculationResponseDto.builder()
+                .discountAmount(expectedDiscount)
+                .finalPrice(expectedFinalPrice)
+                .build();
+
+        when(memberCouponService.calculateDiscount(eq(userId), any(CouponCalculationRequestDto.class)))
+                .thenReturn(responseDto);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discountAmount").value(expectedDiscount))
+                .andExpect(jsonPath("$.finalPrice").value(expectedFinalPrice));
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 유효하지 않은 주문 금액 (400)")
+    void calculateCouponFailureInvalidOrderPrice() throws Exception {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long invalidPrice = -1000L; // 또는 0L
+
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(couponId, invalidPrice);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 쿠폰 예외 처리 시나리오 (404 Not Found)")
+    void issueCouponFailure_CouponNotFound_Scenario() throws Exception {
+        Long userId = 1L;
+        Long invalidCouponId = 999L;
+        UserCouponIssueRequestDto requestDto = new UserCouponIssueRequestDto(invalidCouponId);
+
+        doThrow(new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID : " + invalidCouponId))
+                .when(memberCouponService).issueCouponByUser(userId, invalidCouponId);
+
+        mockMvc.perform(post("/api/coupons/issue")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andDo(print())
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("존재하지 않는 쿠폰입니다. ID : " + invalidCouponId));
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 쿠폰 ID null (400)")
+    void calculateCouponFailureNullCouponId() throws Exception {
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(null, 10000L);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 0원 주문 (400)")
+    void calculateCouponFailureZeroOrderPrice() throws Exception {
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(100L, 0L);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 존재하지 않는 쿠폰 (404)")
+    void calculateCouponFailureNonExistentCoupon() throws Exception {
+        Long userId = 1L;
+        Long invalidCouponId = 999L;
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(invalidCouponId, 10000L);
+
+        doThrow(new CouponNotFoundException("존재하지 않는 쿠폰입니다."))
+                .when(memberCouponService).calculateDiscount(eq(userId), any(CouponCalculationRequestDto.class));
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isNotFound());
     }
 }

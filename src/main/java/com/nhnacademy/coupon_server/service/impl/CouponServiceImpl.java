@@ -92,4 +92,20 @@ public class CouponServiceImpl implements CouponService {
 
         return new PageImpl<>(filteredList, pageable, filteredList.size());
     }
+
+    @Override
+    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
+        Page<Coupon> coupons = couponRepository.findAll(pageable);
+
+        return coupons.map(coupon -> {
+            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+
+            Integer remainingCount = null;
+            if (coupon.getIssueCount() != null) {
+                remainingCount = coupon.getIssueCount() - (int) issuedCount;
+            }
+
+            return CouponResponseDto.fromEntity(coupon, remainingCount);
+        });
+    }
 }

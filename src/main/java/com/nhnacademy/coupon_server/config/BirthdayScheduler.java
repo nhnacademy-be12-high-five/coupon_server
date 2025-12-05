@@ -7,6 +7,7 @@ import com.nhnacademy.coupon_server.service.MemberCouponService;
 import com.nhnacademy.coupon_server.service.client.MemberServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,6 @@ import java.util.List;
 
 @Slf4j
 @Component
-@EnableScheduling
 @RequiredArgsConstructor
 public class BirthdayScheduler {
     private final MemberCouponService memberCouponService;
@@ -25,7 +25,9 @@ public class BirthdayScheduler {
     private final MemberServiceClient memberServiceClient;
 
     @Scheduled(cron = "0 0 0 1 * *")
-    @Transactional
+    // lockAtLeastFor: 작업이 아주 빨리 끝나더라도 최소 이 시간만큼은 락을 유지 (중복 실행 방지 안전장치)
+    // lockAtMostFor: 작업이 길어지거나 서버가 죽었을 때, 락을 강제로 해제하는 최대 시간
+    @SchedulerLock(name = "birthday_coupon_issue_lock", lockAtLeastFor = "PT30S", lockAtMostFor = "PT10M")
     public void autoIssueBirthdayCoupons() {
         int currentMonth = LocalDate.now().getMonthValue();
         log.info("{}월 생일 쿠폰 자동 발급 스케줄러 시작", currentMonth);

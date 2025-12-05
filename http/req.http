@@ -8,7 +8,7 @@ Content-Type: application/json
   "comment": "WELCOME",
   "discountType": "FIXED",
   "discountValue": 5000,
-  "minPayValue": 20000,
+  "minOrderValue": 20000,
   "maxDiscountValue": 5000
 }
 
@@ -21,7 +21,7 @@ Content-Type: application/json
   "comment": "EVENT",
   "discountType": "PERCENTAGE",
   "discountValue": 10,
-  "minPayValue": 10000,
+  "minOrderValue": 10000,
   "maxDiscountValue": 10000
 }
 
@@ -156,4 +156,35 @@ X-USER-ID: 1
 {
   "couponId": 1,
   "orderId": 20240101001
+}
+
+### [22] 관리자: 생일 쿠폰 정책 생성
+# 생일 쿠폰용 정책(BIRTHDAY)을 먼저 정의합니다.
+POST http://localhost:8080/api/coupons/admin/coupon-policy
+Content-Type: application/json
+
+{
+  "name": "2025년 생일 축하 정책",
+  "comment": "BIRTHDAY",
+  "discountType": "FIXED",
+  "discountValue": 10000,
+  "minOrderValue": 30000,
+  "maxDiscountValue": 10000
+}
+
+### [23] 관리자: 생일 쿠폰 템플릿 생성
+# 위에서 만든 정책 ID(예: 1)를 사용하여 실제 발급될 쿠폰 템플릿을 만듭니다.
+# validPeriodDate는 관리자 수동 발급 시 적용될 유효 기간입니다.
+POST http://localhost:8080/api/coupons/admin/coupons
+Content-Type: application/json
+
+{
+  "id": 1,
+  "couponName": "생일 축하 쿠폰",
+  "description": "생일인 고객님을 위한 특별 선물입니다.",
+  "issueCount": 999999,
+  "issueStartAt": "2025-01-01T00:00:00",
+  "issueEndAt": "2025-12-31T23:59:59",
+  "validPeriodDate": 30,
+  "couponType": "NORMAL"
 }
