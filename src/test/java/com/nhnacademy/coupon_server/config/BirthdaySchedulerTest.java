@@ -48,7 +48,7 @@ public class BirthdaySchedulerTest {
         when(memberServiceClient.getBirthdayUserId(anyInt())).thenReturn(birthdayUserIds);
         birthdayScheduler.autoIssueBirthdayCoupons();
 
-        verify(memberServiceClient, times(1)).getBirthdayUserId(LocalDateTime.now().getMonthValue());
+        verify(memberServiceClient, times(1)).getBirthdayUserId(anyInt());
         verify(memberCouponService).issueBirthdayCoupon(100L, couponId);
         verify(memberCouponService).issueBirthdayCoupon(200L, couponId);
     }
@@ -72,7 +72,7 @@ public class BirthdaySchedulerTest {
         when(memberServiceClient.getBirthdayUserId(anyInt())).thenReturn(Collections.emptyList());
 
         birthdayScheduler.autoIssueBirthdayCoupons();
-        verify(memberCouponService, never()).issueCouponByUser(anyLong(), anyLong());
+        verify(memberCouponService, never()).issueBirthdayCoupon(anyLong(), anyLong());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon_server.dto.request;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,5 +14,6 @@ public class CouponCalculationRequestDto {
     private Long couponId;
 
     @NotNull(message = "주문 총 금액은 필수입니다.")
+    @Min(value = 0, message = "주문 금액은 0원 이상이어야 합니다.")
     private Long totalOrderPrice;
 }

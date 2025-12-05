@@ -273,6 +273,22 @@ class MemberCouponControllerTest {
     }
 
     @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 유효하지 않은 주문 금액 (400)")
+    void calculateCouponFailureInvalidOrderPrice() throws Exception {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Long invalidPrice = -1000L; // 또는 0L
+
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(couponId, invalidPrice);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("존재하지 않는 쿠폰 예외 처리 시나리오 (404 Not Found)")
     void issueCouponFailure_CouponNotFound_Scenario() throws Exception {
         Long userId = 1L;
