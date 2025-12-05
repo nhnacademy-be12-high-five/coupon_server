@@ -157,3 +157,17 @@ X-USER-ID: 1
   "couponId": 1,
   "orderId": 20240101001
 }
+
+### [22] 관리자: 생일 쿠폰 정책 생성
+# 생일 쿠폰용 정책(BIRTHDAY)을 먼저 정의합니다.
+POST http://localhost:8080/api/coupons/admin/coupon-policy
+Content-Type: application/json
+
+{
+  "name": "2025년 생일 축하 정책",
+  "comment": "BIRTHDAY",
+  "discountType": "FIXED",
+  "discountValue": 10000,
+  "minOrderValue": 30000,
+  "maxDiscountValue": 10000
+}
