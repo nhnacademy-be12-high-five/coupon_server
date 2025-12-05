@@ -37,6 +37,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = {"spring.cloud.config.enabled=false"}
 )
 class MemberCouponControllerTest {
+    private static final Long VALID_ORDER_PRICE = 30000L;
+    private static final Long EXPECTED_DISCOUNT = 5000L;
+    private static final Long EXPECTED_FINAL_PRICE = 25000L;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -198,6 +202,9 @@ class MemberCouponControllerTest {
         Long userId = 1L;
         Long couponId = 100L;
         Long orderId = 20251127L;
+        Long totalOrderPrice = VALID_ORDER_PRICE;
+        Long expectedDiscount = EXPECTED_DISCOUNT;
+        Long expectedFinalPrice = EXPECTED_FINAL_PRICE;
 
         MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, orderId);
 
@@ -305,5 +312,46 @@ class MemberCouponControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().string("존재하지 않는 쿠폰입니다. ID : " + invalidCouponId));
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 쿠폰 ID null (400)")
+    void calculateCouponFailureNullCouponId() throws Exception {
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(null, 10000L);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 0원 주문 (400)")
+    void calculateCouponFailureZeroOrderPrice() throws Exception {
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(100L, 0L);
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("쿠폰 할인 계산 실패 - 존재하지 않는 쿠폰 (404)")
+    void calculateCouponFailureNonExistentCoupon() throws Exception {
+        Long userId = 1L;
+        Long invalidCouponId = 999L;
+        CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(invalidCouponId, 10000L);
+
+        doThrow(new CouponNotFoundException("존재하지 않는 쿠폰입니다."))
+                .when(memberCouponService).calculateDiscount(eq(userId), any(CouponCalculationRequestDto.class));
+
+        mockMvc.perform(post("/api/coupons/calculate")
+                        .header("X-USER-ID", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isNotFound());
     }
 }
