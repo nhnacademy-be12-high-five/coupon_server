@@ -114,8 +114,18 @@ class MemberCouponRepositoryTest {
     @DisplayName("특정 사용자의 쿠폰 목록 조회 (페이징)")
     void findByUserId_Paging() {
         for (int i = 0; i < 10; i++) {
+            Coupon newCoupon = Coupon.builder()
+                    .couponPolicy(coupon.getCouponPolicy())
+                    .couponName("테스트 쿠폰 " + i)
+                    .issueCount(100)
+                    .issuedStartAt(LocalDateTime.now().minusDays(1))
+                    .issuedEndAt(LocalDateTime.now().plusDays(7))
+                    .validPeriodDate(30)
+                    .build();
+            entityManager.persist(newCoupon);
+
             MemberCoupon mc = MemberCoupon.builder()
-                    .coupon(coupon)
+                    .coupon(newCoupon)
                     .userId(userId)
                     .status(Status.ISSUED)
                     .issueAt(LocalDateTime.now().minusHours(i))
@@ -140,6 +150,20 @@ class MemberCouponRepositoryTest {
     void findAllByUserIdAndStatusAndExpiredAtAfter() {
         LocalDateTime now = LocalDateTime.now();
 
+        Coupon coupon2 = Coupon.builder()
+                .couponPolicy(coupon.getCouponPolicy())
+                .couponName("테스트 쿠폰 2")
+                .issueCount(100)
+                .build();
+        entityManager.persist(coupon2);
+
+        Coupon coupon3 = Coupon.builder()
+                .couponPolicy(coupon.getCouponPolicy())
+                .couponName("테스트 쿠폰 3")
+                .issueCount(100)
+                .build();
+        entityManager.persist(coupon3);
+
         MemberCoupon validCoupon = MemberCoupon.builder()
                 .coupon(coupon)
                 .userId(userId)
@@ -149,7 +173,7 @@ class MemberCouponRepositoryTest {
                 .build();
 
         MemberCoupon usedCoupon = MemberCoupon.builder()
-                .coupon(coupon)
+                .coupon(coupon2)
                 .userId(userId)
                 .status(Status.USED)
                 .issueAt(now.minusDays(5))
@@ -157,7 +181,7 @@ class MemberCouponRepositoryTest {
                 .build();
 
         MemberCoupon expiredCoupon = MemberCoupon.builder()
-                .coupon(coupon)
+                .coupon(coupon3)
                 .userId(userId)
                 .status(Status.EXPIRED)
                 .issueAt(now.minusDays(10))
@@ -173,5 +197,6 @@ class MemberCouponRepositoryTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getStatus()).isEqualTo(Status.ISSUED);
         assertThat(result.get(0).getExpiredAt()).isAfter(now);
+        assertThat(result.get(0).getCoupon().getId()).isEqualTo(coupon.getId());
     }
 }

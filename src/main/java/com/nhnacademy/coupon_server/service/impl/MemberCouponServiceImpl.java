@@ -10,6 +10,7 @@ import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
@@ -19,7 +20,9 @@ import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponReposito
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,7 +69,11 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .expiredAt(dateCalculator.calculateExpiration(coupon))
                 .build();
 
-        memberCouponRepository.save(memberCoupon);
+        try {
+            memberCouponRepository.save(memberCoupon);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateCouponException("이미 해당 쿠폰을 보유하고 있는 회원입니다.");
+        }
     }
 
     @Override
@@ -105,7 +112,11 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .issueAt(LocalDateTime.now())
                 .expiredAt(dateCalculator.calculateExpiration(coupon))
                 .build();
-        memberCouponRepository.save(memberCoupon);
+        try {
+            memberCouponRepository.save(memberCoupon);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateCouponException("이미 해당 쿠폰을 발급받으셨습니다.");
+        }
     }
 
     @Override
@@ -204,14 +215,14 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
     @Override
     @Transactional
-    public void issueBirthdayCoupon(Long userId, Long couponId) {
-        log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", userId, couponId);
+    public void issueBirthdayCoupon(Long memberId, Long couponId) {
+        log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", memberId, couponId);
 
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(() -> new CouponNotFoundException("존재하지 않는 쿠폰입니다. ID : " + couponId));
 
-        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", userId);
+        if (memberCouponRepository.existsByUserIdAndCouponId(memberId, couponId)) {
+            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", memberId);
             return;
         }
 
@@ -221,11 +232,52 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         MemberCoupon memberCoupon = MemberCoupon.builder()
                 .coupon(coupon)
-                .userId(userId)
+                .userId(memberId)
                 .status(Status.ISSUED)
                 .issueAt(now)
                 .expiredAt(endOfMonth)
                 .build();
-        memberCouponRepository.save(memberCoupon);
+        try {
+            memberCouponRepository.save(memberCoupon);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("이미 생일 쿠폰을 발급받은 회원입니다. (중복 발급 방지) User: {}", memberId);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void issueWelcomeCoupon(Long memberId) {
+        log.info("웰컴 쿠폰 자동 지급 시도 - User: {}", memberId);
+        List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(
+                Comment.WELCOME,
+                CouponPolicyStatus.ACTIVE,
+                PageRequest.of(0, 1) // 0페이지에서 1개만 조회 (= LIMIT 1)
+        );
+
+        if (coupons.isEmpty()) {
+            throw new CouponNotFoundException("현재 진행중인 웰컴 쿠폰 이벤트가 없습니다.");
+        }
+        Coupon welcomeCoupon = coupons.get(0);
+
+        if (memberCouponRepository.existsByUserIdAndCouponId(memberId, welcomeCoupon.getId())) {
+            log.info("이미 웰컴 쿠폰을 받은 회원입니다. User: {}", memberId);
+            return;
+        }
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(welcomeCoupon)
+                .userId(memberId)
+                .status(Status.ISSUED)
+                .issueAt(LocalDateTime.now())
+                .expiredAt(dateCalculator.calculateExpiration(welcomeCoupon))
+                .build();
+
+        try {
+            memberCouponRepository.save(memberCoupon);
+            log.info("웰컴 쿠폰 지급 완료! User: {}, Coupon: {}", memberId, welcomeCoupon.getCouponName());
+        } catch (DataIntegrityViolationException e) {
+            // 이미 다른 스레드나 트랜잭션에서 발급함 -> 성공으로 간주하고 종료
+            log.warn("이미 웰컴 쿠폰이 지급되었습니다. (중복 발급 방지) User: {}", memberId);
+        }
     }
 }
