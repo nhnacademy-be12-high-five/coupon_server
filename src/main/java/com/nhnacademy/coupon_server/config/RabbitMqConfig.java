@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
     @Bean
     public Queue messageConverter() {
-        return new Queue("Coupon-welcome-queue", true);
+        return new Queue("coupon-welcome-queue", true);
     }
 
     @Bean
