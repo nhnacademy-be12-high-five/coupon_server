@@ -4,7 +4,9 @@ import com.nhnacademy.coupon_server.dto.message.CouponIssueMessage;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,7 +22,10 @@ public class CouponMessageListener {
         try {
             memberCouponService.issueWelcomeCoupon(message.getMemberId());
         } catch (Exception e) {
-            log.error("웰컴 쿠폰 발급 실패 (메세지 재시도 필요할 수 있음): {}", e.getMessage());
+            log.error("웰컴 쿠폰 발급 실패 - UserId: {}, Error: {}", message.getMemberId(), e.getMessage(), e);
+            if (e instanceof TransientDataAccessException || e instanceof AmqpException) {
+                throw e;
+            }
         }
     }
 
