@@ -1,8 +1,8 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.nhnacademy.coupon_server.controller.apidocs.MemberCouponAdminDocs;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponIssueRequestDto;
-import com.nhnacademy.coupon_server.dto.memberCoupon.MemberCouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

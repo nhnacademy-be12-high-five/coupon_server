@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon_server.service.impl;
 
-import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
@@ -91,5 +91,21 @@ public class CouponServiceImpl implements CouponService {
                 .toList();
 
         return new PageImpl<>(filteredList, pageable, filteredList.size());
+    }
+
+    @Override
+    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
+        Page<Coupon> coupons = couponRepository.findAll(pageable);
+
+        return coupons.map(coupon -> {
+            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+
+            Integer remainingCount = null;
+            if (coupon.getIssueCount() != null) {
+                remainingCount = coupon.getIssueCount() - (int) issuedCount;
+            }
+
+            return CouponResponseDto.fromEntity(coupon, remainingCount);
+        });
     }
 }

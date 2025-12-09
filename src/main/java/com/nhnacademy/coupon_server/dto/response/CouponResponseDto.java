@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon_server.dto.coupon;
+package com.nhnacademy.coupon_server.dto.response;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;

@@ -1,7 +1,7 @@
 package com.nhnacademy.coupon_server.service;
 
-import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,4 +17,9 @@ public interface CouponService {
 
     //발급 가능한 쿠폰 목록 조회
     Page<CouponResponseDto> findIssuableCoupons(Pageable pageable);
+
+    /**
+     * 쿠폰 목록 조회 (페이징, 상태 계산 포함)
+     */
+    Page<CouponResponseDto> getCoupons(Pageable pageable);
 }

@@ -1,8 +1,8 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.nhnacademy.coupon_server.controller.apidocs.CouponAdminDocs;
-import com.nhnacademy.coupon_server.dto.coupon.CouponRequestDto;
-import com.nhnacademy.coupon_server.dto.coupon.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,6 @@
-package com.nhnacademy.coupon_server.dto.couponPolicy;
+package com.nhnacademy.coupon_server.dto.request;
 
 import com.nhnacademy.coupon_server.entity.state.Comment;
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

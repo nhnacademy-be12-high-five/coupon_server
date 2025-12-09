@@ -7,9 +7,12 @@ import com.nhnacademy.coupon_server.entity.state.CouponType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
     Page<Coupon> findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(
@@ -21,4 +24,15 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     );
 
     List<Coupon> findByCouponPolicyComment(Comment comment);
+
+    @Query("SELECT c FROM Coupon c " +
+            "JOIN FETCH c.couponPolicy cp " +
+            "WHERE cp.comment = :comment " +
+            "AND cp.status = :status " +
+            "ORDER BY c.id DESC")
+    List<Coupon> findCouponsByCommentAndStatus(
+            @Param("comment") Comment comment,
+            @Param("status") CouponPolicyStatus status,
+            Pageable pageable
+    );
 }
