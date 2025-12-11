@@ -1,7 +1,12 @@
 package com.nhnacademy.coupon_server.exception;
 
-public class CouponNotFoundException extends RuntimeException {
+public class CouponNotFoundException extends CouponServerException {
     public CouponNotFoundException(String message) {
-        super(message);
+        super(ErrorCode.COUPON_NOT_FOUND);
     }
+
+    public CouponNotFoundException() {
+        super(ErrorCode.COUPON_NOT_FOUND);
+    }
+
 }
