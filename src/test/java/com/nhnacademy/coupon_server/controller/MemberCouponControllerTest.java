@@ -352,7 +352,7 @@ class MemberCouponControllerTest {
         Long invalidCouponId = 999L;
         CouponCalculationRequestDto requestDto = new CouponCalculationRequestDto(invalidCouponId, 10000L);
 
-        doThrow(new CouponNotFoundException("존재하지 않는 쿠폰입니다."))
+        doThrow(new CouponNotFoundException())
                 .when(memberCouponService).calculateDiscount(eq(userId), any(CouponCalculationRequestDto.class));
 
         mockMvc.perform(post("/api/coupons/calculate")

@@ -173,7 +173,7 @@ class CouponPolicyAdminControllerTest {
     @DisplayName("쿠폰 정책 단건 조회 실패 - 존재하지 않는 ID")
     void getPolicyByIdFailureNotFound() throws Exception {
         Long id = 999L;
-        when(couponPolicyService.findById(id)).thenThrow(new CouponPolicyNotFoundException("정책을 찾을 수 없습니다."));
+        when(couponPolicyService.findById(id)).thenThrow(new CouponPolicyNotFoundException());
 
         mockMvc.perform(get("/api/coupons/admin/coupon-policies/{id}", id)
                 .accept(MediaType.APPLICATION_JSON))
@@ -196,7 +196,7 @@ class CouponPolicyAdminControllerTest {
     @DisplayName("쿠폰 정책 비활성화 실패 - 존재하지 않는 정책")
     void deletePoliciesFailure() throws Exception {
         Long id = 999L;
-        doThrow(new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다.")).when(couponPolicyService).deleteById(id);
+        doThrow(new CouponPolicyNotFoundException()).when(couponPolicyService).deleteById(id);
         mockMvc.perform(delete("/api/coupons/admin/coupon-policies/{id}", id))
                 .andDo(print())
                 .andExpect(status().isNotFound());

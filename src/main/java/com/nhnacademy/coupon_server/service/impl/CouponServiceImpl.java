@@ -37,7 +37,7 @@ public class CouponServiceImpl implements CouponService {
         log.info("쿠폰 템플릿 생성 요청 - 정책 ID: {}, 이름: {}", couponRequestDto.getId(), couponRequestDto.getCouponName());
 
         CouponPolicy couponPolicy = couponPolicyRepository.findById(couponRequestDto.getId())
-                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다. ID -> " + couponRequestDto.getId()));
+                .orElseThrow(() -> new CouponPolicyNotFoundException());
 
         Coupon coupon = Coupon.builder()
                 .couponPolicy(couponPolicy)
