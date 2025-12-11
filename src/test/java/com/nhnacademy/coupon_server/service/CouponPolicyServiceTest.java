@@ -7,6 +7,7 @@ import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
+import com.nhnacademy.coupon_server.exception.ErrorCode; // [추가] ErrorCode Import
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
@@ -156,7 +157,12 @@ class CouponPolicyServiceTest {
         Long id = 999L;
         when(couponPolicyRepository.findById(id)).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.findById(id));
+        CouponPolicyNotFoundException exception = Assertions.assertThrows(
+                CouponPolicyNotFoundException.class,
+                () -> couponPolicyService.findById(id)
+        );
+
+        Assertions.assertEquals(ErrorCode.COUPON_POLICY_NOT_FOUND, exception.getErrorCode());
 
         verify(couponPolicyRepository, times(1)).findById(id);
     }
@@ -180,7 +186,13 @@ class CouponPolicyServiceTest {
         Long id = 999L;
         when(couponPolicyRepository.findById(id)).thenReturn(Optional.empty());
 
-        Assertions.assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.deleteById(id));
+        CouponPolicyNotFoundException exception = Assertions.assertThrows(
+                CouponPolicyNotFoundException.class,
+                () -> couponPolicyService.deleteById(id)
+        );
+
+        Assertions.assertEquals(ErrorCode.COUPON_POLICY_NOT_FOUND, exception.getErrorCode());
+
         verify(couponPolicyRepository, never()).deleteById(id);
     }
 }

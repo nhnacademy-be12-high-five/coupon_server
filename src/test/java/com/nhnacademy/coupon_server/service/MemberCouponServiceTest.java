@@ -6,6 +6,7 @@ import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.ErrorResponse;
 import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
@@ -17,6 +18,7 @@ import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
+import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.exception.GlobalExceptionHandler;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
@@ -366,8 +368,13 @@ public class MemberCouponServiceTest {
     @Test
     @DisplayName("GlobalExceptionHandler 테스트")
     void handleExceptionTest() {
-        DuplicateCouponException ex = new DuplicateCouponException("Error");
-        ResponseEntity<String> res = globalExceptionHandler.handleDuplicateCouponException(ex);
-        Assertions.assertEquals(HttpStatus.CONFLICT, res.getStatusCode());
+        DuplicateCouponException ex = new DuplicateCouponException();
+
+        // [수정] 변경된 핸들러 메소드 호출 및 반환 타입(ErrorResponse) 확인
+        ResponseEntity<ErrorResponse> res = globalExceptionHandler.handleCouponServerException(ex);
+
+        // [수정] ErrorCode에 정의된 Status 확인 (BAD_REQUEST)
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
+        Assertions.assertEquals(ErrorCode.DUPLICATE_COUPON_ISSUE.getCode(), res.getBody().getCode());
     }
 }

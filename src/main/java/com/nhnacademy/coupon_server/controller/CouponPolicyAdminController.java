@@ -16,7 +16,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/coupons/admin/coupon-policy")
+@RequestMapping("/api/coupons/admin/coupon-policies")
 public class CouponPolicyAdminController implements CouponPolicyAdminDocs {
     private final CouponPolicyService couponPolicyService;
 
@@ -34,14 +34,14 @@ public class CouponPolicyAdminController implements CouponPolicyAdminDocs {
     }
 
     @Override
-    public ResponseEntity<CouponPolicyResponseDto> getCouponPolicy(@PathVariable Long couponPolicyId) {
+    public ResponseEntity<CouponPolicyResponseDto> getCouponPolicy(@PathVariable("couponPolicyId") Long couponPolicyId) {
         log.info("관리자 쿠폰 정책 단건 조회 요청 - ID -> {}", couponPolicyId);
         CouponPolicyResponseDto responseDto = couponPolicyService.findById(couponPolicyId);
         return ResponseEntity.ok(responseDto);
     }
 
     @Override
-    public ResponseEntity<CouponPolicyResponseDto> deleteCouponPolicy(Long couponPolicyId) {
+    public ResponseEntity<CouponPolicyResponseDto> deleteCouponPolicy(@PathVariable("couponPolicyId") Long couponPolicyId) {
         log.info("관리자 쿠폰 정책 비활성화 요청");
         couponPolicyService.deleteById(couponPolicyId);
         return ResponseEntity.ok().build();

@@ -42,7 +42,7 @@ public interface CouponPolicyAdminDocs {
     @GetMapping("/{couponPolicyId}")
     ResponseEntity<CouponPolicyResponseDto> getCouponPolicy(
             @Parameter(name = "couponPolicyId", description = "조회할 정책 ID", required = true, in = ParameterIn.PATH, example = "1")
-            @PathVariable Long couponPolicyId
+            @PathVariable("couponPolicyId") Long couponPolicyId
     );
 
     @Operation(summary = "쿠폰 정책 비활성화", description = "쿠폰 정책을 비활성화 합니다.")
@@ -53,6 +53,6 @@ public interface CouponPolicyAdminDocs {
     @DeleteMapping("/{couponPolicyId}")
     ResponseEntity<CouponPolicyResponseDto> deleteCouponPolicy(
             @Parameter(name = "couponPolicyId", description = "비활성화 할 정책 ID", required = true, in = ParameterIn.PATH, example = "1")
-            @PathVariable Long couponPolicyId
+            @PathVariable("couponPolicyId") Long couponPolicyId
     );
 }
