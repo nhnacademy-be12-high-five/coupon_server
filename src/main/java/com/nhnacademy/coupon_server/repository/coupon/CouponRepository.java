@@ -36,12 +36,14 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             Pageable pageable
     );
 
-    @Query("SELECT c FROM Coupon c " +
-            "JOIN c.couponPolicy cp " +
+    @Query("SELECT DISTINCT c FROM Coupon c " +
+            "JOIN FETCH c.couponPolicy cp " +
             "JOIN cp.usableBooks b " +
             "WHERE b.bookId = :bookId " +
-            "AND cp.status = 'ACTIVE' " +
+            "AND cp.status = :status " +
             "AND (c.issuedStartAt IS NULL OR c.issuedStartAt <= :now) " +
             "AND (c.issuedEndAt IS NULL OR c.issuedEndAt >= :now)")
-    List<Coupon> findByBookId(@Param("bookId") Long bookId, @Param("now") LocalDateTime now);
+    List<Coupon> findByBookId(@Param("bookId") Long bookId,
+                              @Param("status") CouponPolicyStatus status,
+                              @Param("now") LocalDateTime now);
 }
