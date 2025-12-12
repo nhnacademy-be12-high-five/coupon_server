@@ -7,17 +7,14 @@ on:
     branches: [ "main", "dev" ]
 
 jobs:
-  # PR 검증용 Job (배포 X, 테스트 O)
   ci-check:
     if: github.event_name == 'pull_request'
     uses: nhnacademy-be12-high-five/.github/.github/workflows/service-workflow.yml@main
     with:
       project-key: team5-coupon-service
       docker-image: fbxogns123/coupon-server
-      container-name: coupon_server
-      # 테스트를 수행해 품질 검사
+      container-name: coupon-server
       maven-args: "-B"
-      # 배포 비활성화
       deploy-enabled: false
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -28,17 +25,18 @@ jobs:
       SSH_PW: ${{ secrets.SSH_PW }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
 
-  # 실제 배포용 Job (Merge 시 실행)
   cd-deploy:
     if: github.event_name == 'push'
     uses: nhnacademy-be12-high-five/.github/.github/workflows/service-workflow.yml@main
     with:
       project-key: team5-coupon-service
       docker-image: fbxogns123/coupon-server
-      container-name: coupon_server
-      # 배포 단계에서는 속도를 위해 테스트 스킵 (이미 PR에서 통과했으므로)
+
+      container-name: coupon-server
+
+      is-multi-instance: true
+
       maven-args: "-B -DskipTests"
-      # 배포 활성화
       deploy-enabled: true
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
