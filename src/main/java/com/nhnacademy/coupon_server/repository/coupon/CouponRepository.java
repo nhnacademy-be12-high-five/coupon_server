@@ -43,7 +43,7 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             "AND cp.status = :status " +
             "AND (c.issuedStartAt IS NULL OR c.issuedStartAt <= :now) " +
             "AND (c.issuedEndAt IS NULL OR c.issuedEndAt >= :now)")
-    List<Coupon> findByBookId(@Param("bookId") Long bookId,
+    List<Coupon> findByBookIdAndStatus(@Param("bookId") Long bookId,
                               @Param("status") CouponPolicyStatus status,
                               @Param("now") LocalDateTime now);
 }
