@@ -35,4 +35,13 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             @Param("status") CouponPolicyStatus status,
             Pageable pageable
     );
+
+    @Query("SELECT c FROM Coupon c " +
+            "JOIN c.couponPolicy cp " +
+            "JOIN cp.usableBooks b " +
+            "WHERE b.bookId = :bookId " +
+            "AND cp.status = 'ACTIVE' " +
+            "AND (c.issuedStartAt IS NULL OR c.issuedStartAt <= :now) " +
+            "AND (c.issuedEndAt IS NULL OR c.issuedEndAt >= :now)")
+    List<Coupon> findByBookId(@Param("bookId") Long bookId, @Param("now") LocalDateTime now);
 }

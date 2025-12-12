@@ -108,4 +108,13 @@ public class CouponServiceImpl implements CouponService {
             return CouponResponseDto.fromEntity(coupon, remainingCount);
         });
     }
+
+    @Override
+    public List<CouponResponseDto> findCouponsByBookId(Long bookId) {
+        List<Coupon> coupons = couponRepository.findByBookId(bookId, LocalDateTime.now());
+
+        return coupons.stream()
+                .map(CouponResponseDto::fromEntity)
+                .toList();
+    }
 }
