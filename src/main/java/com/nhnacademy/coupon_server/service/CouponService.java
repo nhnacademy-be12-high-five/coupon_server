@@ -22,4 +22,6 @@ public interface CouponService {
      * 쿠폰 목록 조회 (페이징, 상태 계산 포함)
      */
     Page<CouponResponseDto> getCoupons(Pageable pageable);
+
+    List<CouponResponseDto> findCouponsByBookId(Long bookId);
 }

@@ -7,6 +7,8 @@ import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
+import com.nhnacademy.coupon_server.exception.CouponServerException;
+import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
@@ -107,5 +109,32 @@ public class CouponServiceImpl implements CouponService {
 
             return CouponResponseDto.fromEntity(coupon, remainingCount);
         });
+    }
+
+    @Override
+    public List<CouponResponseDto> findCouponsByBookId(Long bookId) {
+        // 1. 입력값 검증
+        if (bookId == null || bookId <= 0) {
+            throw new CouponServerException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        List<Coupon> coupons = couponRepository.findByBookIdAndStatus(
+                bookId,
+                CouponPolicyStatus.ACTIVE,
+                LocalDateTime.now()
+        );
+
+        return coupons.stream()
+                .map(coupon -> {
+                    // 2. 남은 수량 계산 (다른 메서드와 로직 통일)
+                    Integer remainingCount = null;
+                    if (coupon.getIssueCount() != null) {
+                        long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issuedCount);
+                    }
+                    // remainingCount를 전달하여 DTO 생성 (SOLD_OUT 상태 등 반영됨)
+                    return CouponResponseDto.fromEntity(coupon, remainingCount);
+                })
+                .toList();
     }
 }
