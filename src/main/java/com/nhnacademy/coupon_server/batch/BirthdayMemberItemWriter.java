@@ -13,6 +13,7 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -49,7 +50,11 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
     }
 
     private Long fetchBirthdayCouponId() {
-        List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(Comment.BIRTHDAY, CouponPolicyStatus.ACTIVE, PageRequest.of(0,1));
+        List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(
+                Comment.BIRTHDAY,
+                CouponPolicyStatus.ACTIVE,
+                PageRequest.of(0, 1, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"))
+        );
         if (coupons.isEmpty()) {
             return null;
         }
