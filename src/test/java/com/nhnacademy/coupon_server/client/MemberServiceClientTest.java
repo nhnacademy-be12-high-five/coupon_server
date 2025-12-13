@@ -44,7 +44,7 @@ class MemberServiceClientTest {
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(objectMapper.writeValueAsString(expectedMemberIds))));
 
-        List<Long> result = memberServiceClient.getBirthdayUserId(month);
+        List<Long> result = memberServiceClient.getBirthdayUserId(month, 1, 1);
 
         assertThat(result).isNotNull();
         assertThat(result).hasSize(3);
