@@ -10,7 +10,6 @@ import java.util.Iterator;
 import java.util.List;
 
 @Slf4j
-@RequiredArgsConstructor
 public class BirthdayMemberItemReader implements ItemReader<Long> {
     private final MemberServiceClient memberServiceClient;
     private final int chunkSize;

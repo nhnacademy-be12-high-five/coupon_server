@@ -44,9 +44,11 @@ class MemberServiceClientTest {
                 .willReturn(aResponse()
                         .withStatus(HttpStatus.OK.value())
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                        .withBody("[1, 2, 3]")));
+                        .withBody("[10, 20, 30]")));
 
         List<Long> result = memberServiceClient.getBirthdayUserId(month, page, size);
+
+        assertThat(result).isEqualTo(expectedMemberIds);
 
         verify(getRequestedFor(urlPathEqualTo("/api/members/birthday"))
                 .withQueryParam("month", equalTo(String.valueOf(month)))
