@@ -32,6 +32,7 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
     @BeforeStep
     public void beforeStep(StepExecution stepExecution) {
         this.cachedBirthdayCouponId = null;
+        this.failureCount = 0;
     }
 
     @Override
