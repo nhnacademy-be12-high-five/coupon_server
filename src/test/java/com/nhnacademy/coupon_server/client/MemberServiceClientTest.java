@@ -28,26 +28,29 @@ class MemberServiceClientTest {
     @Autowired
     private MemberServiceClient memberServiceClient;
 
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("멤버 서버 생일자 조회 요청 테스트")
     void getBirthdayUserId_Success() throws Exception {
         int month = 12;
+        int page = 0;
+        int size = 10;
         List<Long> expectedMemberIds = List.of(10L, 20L, 30L);
 
         stubFor(get(urlPathEqualTo("/api/members/birthday"))
                 .withQueryParam("month", equalTo(String.valueOf(month)))
+                .withQueryParam("page", equalTo(String.valueOf(page)))
+                .withQueryParam("size", equalTo(String.valueOf(size)))
                 .willReturn(aResponse()
                         .withStatus(HttpStatus.OK.value())
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                        .withBody(objectMapper.writeValueAsString(expectedMemberIds))));
+                        .withBody("[1, 2, 3]")));
 
-        List<Long> result = memberServiceClient.getBirthdayUserId(month, 1, 1);
+        List<Long> result = memberServiceClient.getBirthdayUserId(month, page, size);
 
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        assertThat(result).containsExactly(10L, 20L, 30L);
+        verify(getRequestedFor(urlPathEqualTo("/api/members/birthday"))
+                .withQueryParam("month", equalTo(String.valueOf(month)))
+                .withQueryParam("page", equalTo("0"))
+                .withQueryParam("size", equalTo("10")));
     }
 }

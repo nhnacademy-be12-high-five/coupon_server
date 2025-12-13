@@ -14,12 +14,19 @@ import java.util.List;
 public class BirthdayMemberItemReader implements ItemReader<Long> {
     private final MemberServiceClient memberServiceClient;
     private final int chunkSize;
+    private final int targetMonth;
 
     private int page = 0;
     private Iterator<Long> currentChunkIterator;
 
+    public BirthdayMemberItemReader(MemberServiceClient memberServiceClient, int chunkSize) {
+        this.memberServiceClient = memberServiceClient;
+        this.chunkSize = chunkSize;
+        this.targetMonth = LocalDate.now().getMonthValue();
+    }
+
     @Override
-    public Long read() {
+    public Long read() throws Exception {
         if (currentChunkIterator == null || !currentChunkIterator.hasNext()) {
             List<Long> nextChunk = fetchNextPage();
 
@@ -35,16 +42,10 @@ public class BirthdayMemberItemReader implements ItemReader<Long> {
 
     private List<Long> fetchNextPage() {
         int currentMonth = LocalDate.now().getMonthValue();
-        log.info("Fetching birthday users - Month: {}, Page: {}, Size: {}", currentMonth, page, chunkSize);
+        log.info("Fetching birthday users - Month: {}, Page: {}, Size: {}", targetMonth, page, chunkSize);
 
-        try {
-            // Member Server 호출
-            List<Long> userIds = memberServiceClient.getBirthdayUserId(currentMonth, page, chunkSize);
-            page++;
-            return userIds;
-        } catch (Exception e) {
-            log.error("Failed to fetch birthday users", e);
-            return null;
-        }
+        List<Long> userIds = memberServiceClient.getBirthdayUserId(currentMonth, page, chunkSize);
+        page++;
+        return userIds;
     }
 }

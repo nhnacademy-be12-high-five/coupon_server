@@ -33,6 +33,9 @@ public class BatchConfig {
                 .<Long,Long>chunk(CHUNK_SIZE, transactionManager)
                 .reader(new BirthdayMemberItemReader(memberServiceClient, CHUNK_SIZE))
                 .writer(birthdayMemberItemWriter)
+                .faultTolerant()
+                .retryLimit(3)
+                .retry(Exception.class)
                 .build();
     }
 }
