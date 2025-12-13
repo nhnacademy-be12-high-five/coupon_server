@@ -43,15 +43,9 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
         }
 
         for (Long userId : chunk) {
-            try {
-                memberCouponService.issueBirthdayCoupon(userId, cachedBirthdayCouponId);
-            } catch (Exception e) {
-                log.error("생일 쿠폰 발급 실패 - UserId: {}, Error: {}", userId, e.getMessage());
-                failureCount++;
-            }
+            memberCouponService.issueBirthdayCoupon(userId, cachedBirthdayCouponId);
         }
-        log.info("이번 청크 작업 완료: {}명 처리 시도", chunk.size());
-        log.info("이번 청크 작업 완료: {}명 처리 시도, 실패: {}명", chunk.size(), failureCount);
+        log.info("이번 청크 작업 완료: {}명 처리 성공", chunk.size());
     }
 
     private Long fetchBirthdayCouponId() {
