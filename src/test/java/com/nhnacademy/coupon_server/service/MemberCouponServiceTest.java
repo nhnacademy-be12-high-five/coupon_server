@@ -370,11 +370,9 @@ public class MemberCouponServiceTest {
     void handleExceptionTest() {
         DuplicateCouponException ex = new DuplicateCouponException();
 
-        // [수정] 변경된 핸들러 메소드 호출 및 반환 타입(ErrorResponse) 확인
         ResponseEntity<ErrorResponse> res = globalExceptionHandler.handleCouponServerException(ex);
 
-        // [수정] ErrorCode에 정의된 Status 확인 (BAD_REQUEST)
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
+        Assertions.assertEquals(HttpStatus.CONFLICT, res.getStatusCode());
         Assertions.assertEquals(ErrorCode.DUPLICATE_COUPON_ISSUE.getCode(), res.getBody().getCode());
     }
 }
