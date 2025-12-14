@@ -15,7 +15,7 @@ public enum ErrorCode {
 
     // Coupon
     COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "CO001", "존재하지 않는 쿠폰입니다."),
-    DUPLICATE_COUPON_ISSUE(HttpStatus.BAD_REQUEST, "CO002", "이미 발급된 쿠폰입니다."),
+    DUPLICATE_COUPON_ISSUE(HttpStatus.CONFLICT, "CO002", "이미 발급된 쿠폰입니다."),
 
     // Member Coupon
     MEMBER_COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "MC001", "회원 쿠폰을 찾을 수 없습니다.");
