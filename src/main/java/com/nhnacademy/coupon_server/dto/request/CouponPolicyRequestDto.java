@@ -34,6 +34,9 @@ public class CouponPolicyRequestDto {
     @PositiveOrZero(message = "최대 할인 금액은 0 이상이어야 합니다.")
     private Long maxDiscountValue;
 
+    @PositiveOrZero(message = "유효 기간(일)은 0 이상이어야 합니다.")
+    private Integer validPeriodDate;
+
     private List<Long> targetBookIds;
 
     private List<Long> targetCategoryIds;
