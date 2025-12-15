@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
         "eureka.client.enabled=false", // 테스트 중 유레카 등록 방지
+        "spring.batch.job.enabled=false",
         // FeignClient가 실제 유레카 대신 로컬 WireMock 포트를 바라보게 설정
         "spring.cloud.openfeign.client.config.TEAM5-MEMBER-SERVER.url=http://localhost:${wiremock.server.port}"
 })
