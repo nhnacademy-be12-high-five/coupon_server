@@ -58,17 +58,6 @@ class BirthdaySchedulerTest {
     }
 
     @Test
-    @DisplayName("예외 처리: Job 실행 중 에러가 발생해도 스케줄러는 중단되지 않고 로그를 남겨야 한다")
-    void autoIssueBirthdayCoupons_Exception() throws Exception {
-        when(jobLauncher.run(eq(deleteExpiredCouponJob), any(JobParameters.class)))
-                .thenThrow(new JobExecutionAlreadyRunningException("Job is already running"));
-
-        birthdayScheduler.autoIssueBirthdayCoupons();
-
-        verify(jobLauncher, times(1)).run(eq(deleteExpiredCouponJob), any(JobParameters.class));
-    }
-
-    @Test
     @DisplayName("예외 처리: 삭제 Job 실패 시 생일 Job은 실행되지 않아야 한다 (현재 구조)")
     void autoIssueBirthdayCoupons_DeleteJobFails_BirthdayJobNotExecuted() throws Exception {
         when(jobLauncher.run(eq(deleteExpiredCouponJob), any(JobParameters.class)))
