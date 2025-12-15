@@ -7,7 +7,10 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-@SpringBootTest(properties = {"spring.cloud.config.enabled=false"})
+@SpringBootTest(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.batch.job.enabled=false"
+})
 @ActiveProfiles("test")
 class CouponServerApplicationTests {
 

@@ -30,7 +30,7 @@ public class BirthdayScheduler {
         try {
             log.info(">>> 1. 만료/사용 쿠폰 정리 배치 시작");
             JobParameters deleteJobParams = new JobParametersBuilder()
-                    .addString("executedAt", now)
+                    .addString("executedAt", now + "_delete")
                     .addString("type", "delete")
                     .toJobParameters();
             jobLauncher.run(deleteExpiredCouponJob, deleteJobParams);
@@ -38,7 +38,7 @@ public class BirthdayScheduler {
 
             log.info(">>> 2. 생일 쿠폰 발급 배치 시작");
             JobParameters birthdayJobParams = new JobParametersBuilder()
-                    .addString("executedAt", now)
+                    .addString("executedAt", now + "_birthday")
                     .addString("type", "birthday")
                     .toJobParameters();
 
