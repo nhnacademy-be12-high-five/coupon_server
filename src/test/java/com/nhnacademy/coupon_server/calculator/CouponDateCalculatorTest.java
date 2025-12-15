@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class CouponDateCalculatorTest {
     private final CouponDateCalculator couponDateCalculator = new CouponDateCalculator();
@@ -34,10 +35,12 @@ public class CouponDateCalculatorTest {
                 .build();
 
         LocalDateTime result = couponDateCalculator.calculateExpiration(coupon);
-        LocalDateTime expected = LocalDateTime.now().plusDays(periodDays);
 
-        Assertions.assertTrue(result.isAfter(expected.minusSeconds(1)));
-        Assertions.assertTrue(result.isBefore(expected.plusSeconds(1)));
+        LocalDateTime expectedDate = LocalDateTime.now().plusDays(periodDays);
+        LocalDateTime expected = expectedDate.with(LocalTime.MAX);
+
+        Assertions.assertEquals(expected.toLocalDate(), result.toLocalDate());
+        Assertions.assertEquals(expected.toLocalTime(), result.toLocalTime());
     }
 
     @Test
