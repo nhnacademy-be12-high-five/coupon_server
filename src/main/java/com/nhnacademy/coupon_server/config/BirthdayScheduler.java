@@ -19,18 +19,31 @@ public class BirthdayScheduler {
 
     private final JobLauncher jobLauncher;
     private final Job birthdayCouponJob;
+    private final Job deleteExpiredCouponJob;
 
     @Scheduled(cron = "0 0 0 1 * *")
     @SchedulerLock(name = "birthday_coupon_issue_lock", lockAtLeastFor = "PT30S", lockAtMostFor = "PT10M")
     public void autoIssueBirthdayCoupons() {
-        log.info("생일 쿠폰 자동 발급 배치 시작");
+        log.info("매월 정기 쿠폰 작업(생일 쿠폰, 만료 정리) 시작");
+        String now = LocalDateTime.now().toString();
 
         try {
-            JobParameters jobParameters = new JobParametersBuilder()
-                    .addString("executedAt", LocalDateTime.now().toString())
+            log.info(">>> 1. 만료/사용 쿠폰 정리 배치 시작");
+            JobParameters deleteJobParams = new JobParametersBuilder()
+                    .addString("executedAt", now)
+                    .addString("type", "delete")
+                    .toJobParameters();
+            jobLauncher.run(deleteExpiredCouponJob, deleteJobParams);
+            log.info(">>> 1. 만료/사용 쿠폰 정리 배치 완료");
+
+            log.info(">>> 2. 생일 쿠폰 발급 배치 시작");
+            JobParameters birthdayJobParams = new JobParametersBuilder()
+                    .addString("executedAt", now)
+                    .addString("type", "birthday")
                     .toJobParameters();
 
-            jobLauncher.run(birthdayCouponJob, jobParameters);
+            jobLauncher.run(birthdayCouponJob, birthdayJobParams);
+            log.info(">>> 2. 생일 쿠폰 발급 배치 완료");
 
         } catch (Exception e) {
             log.error("생일 쿠폰 발급 배치 실행 중 오류 발생", e);
