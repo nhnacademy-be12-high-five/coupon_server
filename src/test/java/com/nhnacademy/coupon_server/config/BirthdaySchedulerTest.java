@@ -8,9 +8,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
@@ -86,7 +84,7 @@ class BirthdaySchedulerTest {
     @DisplayName("예외 처리: 생일 Job 실패 시에도 스케줄러는 중단되지 않아야 한다")
     void autoIssueBirthdayCoupons_BirthdayJobFails() throws Exception {
         when(jobLauncher.run(eq(deleteExpiredCouponJob), any(JobParameters.class)))
-                .thenReturn(null);
+                .thenReturn(mock(JobExecution.class));
         when(jobLauncher.run(eq(birthdayCouponJob), any(JobParameters.class)))
                 .thenThrow(new JobRestartException("Cannot restart"));
 
