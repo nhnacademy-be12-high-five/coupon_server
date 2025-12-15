@@ -7,7 +7,9 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Getter
 @Builder
@@ -24,6 +26,7 @@ public class MemberCouponResponseDto {
     private Long discountValue;
     private String discountType;
     private String condition;
+    private Long daysRemaining;
 
     public static MemberCouponResponseDto fromEntity(MemberCoupon memberCoupon) {
         CouponPolicy policy = memberCoupon.getCoupon().getCouponPolicy();
@@ -35,7 +38,10 @@ public class MemberCouponResponseDto {
         } else {
             conditionStr = "조건 없음";
         }
-
+        long daysRemained = 0;
+        if (memberCoupon.getExpiredAt() != null) {
+            daysRemained = ChronoUnit.DAYS.between(LocalDate.now(), memberCoupon.getExpiredAt().toLocalDate());
+        }
         return MemberCouponResponseDto.builder()
                 .id(memberCoupon.getId())
                 .userId(memberCoupon.getUserId())
@@ -49,6 +55,7 @@ public class MemberCouponResponseDto {
                 .discountValue(policy.getDiscountValue())
                 .discountType(policy.getDiscountType().toString())
                 .condition(conditionStr)
+                .daysRemaining(daysRemained)
                 .build();
     }
 }
