@@ -65,7 +65,7 @@ class CouponDeleteBatchConfigTest {
 
     @Test
     @DisplayName("만료되었거나 사용된 쿠폰만 삭제되고, 정상 쿠폰은 유지되어야 한다")
-    void deleteExpiredCouponJob_Success() throws Exception {
+    void deleteExpiredCouponJobSuccess() throws Exception {
         CouponPolicy policy = CouponPolicy.builder()
                 .name("테스트 정책")
                 .comment(Comment.EVENT)
