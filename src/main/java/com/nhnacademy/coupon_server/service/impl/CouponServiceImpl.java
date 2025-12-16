@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,6 +64,9 @@ public class CouponServiceImpl implements CouponService {
         if (savedCoupon.getIssueCount() != null) {
             String countKey = "coupon:count:" + savedCoupon.getId();
             redisTemplate.opsForValue().set(countKey, String.valueOf(savedCoupon.getIssueCount()));
+            if (savedCoupon.getIssuedEndAt() != null) {
+                redisTemplate.expireAt(countKey, Timestamp.valueOf(savedCoupon.getIssuedEndAt().plusDays(1)));
+            }
         }
         return CouponResponseDto.fromEntity(savedCoupon);
     }

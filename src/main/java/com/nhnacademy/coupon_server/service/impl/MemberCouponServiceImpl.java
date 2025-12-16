@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service.impl;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
+import com.nhnacademy.coupon_server.config.RabbitMqConfig;
 import com.nhnacademy.coupon_server.dto.message.CouponIssueMessage;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
@@ -126,7 +127,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         try {
             CouponIssueMessage message = new CouponIssueMessage(userId, couponId);
-            rabbitTemplate.convertAndSend("high-five-coupon-issue-queue", message);
+            rabbitTemplate.convertAndSend(RabbitMqConfig.COUPON_ISSUE_QUEUE, message);
             log.info("쿠폰 발급 요청 큐 적재 완료 - User: {}, Coupon: {}", userId, couponId);
         } catch (Exception e) {
             log.error("메시지 큐 전송 실패, Redis 롤백 수행 - User: {}, Coupon: {}", userId, couponId, e);
@@ -147,8 +148,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .orElseThrow(CouponNotFoundException::new);
 
         if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            log.warn("이미 DB에 저장된 쿠폰입니다. (Duplicate) - User: {}", userId);
-            return;
+            throw new DuplicateCouponException();
         }
 
         MemberCoupon memberCoupon = MemberCoupon.builder()
@@ -159,16 +159,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .expiredAt(dateCalculator.calculateExpiration(coupon))
                 .build();
 
-        try {
-            memberCouponRepository.save(memberCoupon);
-        } catch (DataIntegrityViolationException e) {
-            if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-                log.warn("이미 발급된 쿠폰입니다. (중복 발급 방지) - User: {}, Coupon: {}", userId, couponId);
-                return;
-            }
-            log.error("쿠폰 발급 중 예기치 않은 무결성 오류 - User: {}, Coupon: {}", userId, couponId, e);
-            throw e;
-        }
+        memberCouponRepository.save(memberCoupon);
     }
 
     @Override
