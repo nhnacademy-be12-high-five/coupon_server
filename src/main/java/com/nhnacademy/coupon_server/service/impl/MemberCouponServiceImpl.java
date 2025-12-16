@@ -35,6 +35,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -101,7 +102,9 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         if (coupon.getIssuedEndAt() != null) {
             redisTemplate.expireAt(issuedUserKey,
-                    java.sql.Timestamp.valueOf(coupon.getIssuedEndAt().plusDays(1)));
+                    Timestamp.valueOf(coupon.getIssuedEndAt().plusDays(1)));
+            redisTemplate.expireAt(countKey,
+                    Timestamp.valueOf(coupon.getIssuedEndAt().plusDays(1)));
         }
 
         if ((isAdded != null) && (isAdded == 0)) {

@@ -29,7 +29,7 @@ public class RabbitMqConfig {
     public Queue issuesCouponQueue() {
         Map<String, Object> args = new HashMap<>();
         args.put("x-dead-letter-exchange", COUPON_DEAD_LETTER_EXCHANGE);
-        args.put("x-dead-letter-routing-key", COUPON_DEAD_LETTER_QUEUE);
+        args.put("x-dead-letter-routing-key", COUPON_DEAD_LETTER_ROUTING_KEY);
         return new Queue(COUPON_ISSUE_QUEUE, true, false, false, args);
     }
 
