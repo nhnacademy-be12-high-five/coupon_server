@@ -1,5 +1,6 @@
 package com.nhnacademy.coupon_server.service;
 
+import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
@@ -11,6 +12,7 @@ import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponServiceImpl;
+import com.nhnacademy.coupon_server.service.impl.MemberCouponServiceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,10 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,12 +45,23 @@ class CouponServiceTest {
     private CouponPolicyRepository couponPolicyRepository;
     @Mock
     private MemberCouponRepository memberCouponRepository;
+    @Mock
+    private StringRedisTemplate redisTemplate;
+    @Mock
+    private RedisTemplate<Object, Object> objectRedisTemplate;
+
 
     private CouponServiceImpl couponService;
 
     @BeforeEach
     void setUp() {
-        couponService = new CouponServiceImpl(couponPolicyRepository, couponRepository, memberCouponRepository);
+        couponService = new CouponServiceImpl(
+                couponPolicyRepository,  // 1. CouponPolicyRepository (순서 변경됨)
+                couponRepository,        // 2. CouponRepository
+                memberCouponRepository,  // 3. MemberCouponRepository
+                redisTemplate,           // 4. StringRedisTemplate (추가)
+                objectRedisTemplate      // 5. RedisTemplate<Object, Object> (추가)
+        );
     }
 
     @Test

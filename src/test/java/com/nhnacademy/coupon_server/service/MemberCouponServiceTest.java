@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
+import com.nhnacademy.coupon_server.dto.message.CouponIssueMessage;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
@@ -30,11 +31,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -55,14 +60,32 @@ public class MemberCouponServiceTest {
     private CouponRepository couponRepository;
 
     @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
     private CouponDateCalculator dateCalculator;
 
-    private MemberCouponService memberCouponService;
+    @Mock
+    private RabbitTemplate rabbitTemplate;
+
+    @Mock
+    private SetOperations<String, String> setOperations;
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
+    private MemberCouponServiceImpl memberCouponService;
     private final GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
 
     @BeforeEach
     public void setUp() {
-        memberCouponService = new MemberCouponServiceImpl(memberCouponRepository, couponRepository, dateCalculator);
+        memberCouponService = new MemberCouponServiceImpl(
+                memberCouponRepository,
+                couponRepository,
+                dateCalculator,
+                redisTemplate,
+                rabbitTemplate
+        );
+
     }
 
     // ==========================================
@@ -151,25 +174,27 @@ public class MemberCouponServiceTest {
     void issueCouponByUser_Success() {
         Long userId = 1L;
         Long couponId = 100L;
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expirationDate = now.plusDays(30);
-
         Coupon coupon = Coupon.builder()
                 .id(couponId)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
                 .issueCount(100)
-                .issuedStartAt(now.minusDays(1))
-                .issuedEndAt(now.plusDays(1))
+                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .issuedStartAt(LocalDateTime.now().minusDays(1))
+                .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(99L);
-        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
-        when(dateCalculator.calculateExpiration(coupon)).thenReturn(expirationDate);
+
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        when(setOperations.add(anyString(), anyString())).thenReturn(1L);
+
+        when(valueOperations.decrement(anyString())).thenReturn(99L);
 
         memberCouponService.issueCouponByUser(userId, couponId);
 
-        verify(memberCouponRepository).save(any(MemberCoupon.class));
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("high-five-coupon-issue-queue"), any(CouponIssueMessage.class));
+        verify(memberCouponRepository, never()).save(any());
     }
 
     @Test
@@ -188,15 +213,16 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(50L);
-        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
-        when(dateCalculator.calculateExpiration(coupon)).thenReturn(now.plusDays(30));
 
-        doThrow(DataIntegrityViolationException.class).when(memberCouponRepository).save(any(MemberCoupon.class));
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+
+        when(setOperations.add(anyString(), anyString())).thenReturn(0L);
 
         Assertions.assertThrows(DuplicateCouponException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
+
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), any(Object.class));
     }
 
     @Test
@@ -212,16 +238,29 @@ public class MemberCouponServiceTest {
     @Test
     @DisplayName("사용자 발급 실패 - 수량 매진")
     void issueCouponByUser_Fail_SoldOut() {
+        Long userId = 1L;
         Long couponId = 10L;
+
         Coupon coupon = Coupon.builder()
+                .id(couponId)
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
                 .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .issueCount(100)
+                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
                 .build();
-        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(100L);
 
-        Assertions.assertThrows(IllegalStateException.class, () -> memberCouponService.issueCouponByUser(1L, couponId));
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        when(setOperations.add(anyString(), anyString())).thenReturn(1L);
+
+        when(valueOperations.decrement(anyString())).thenReturn(-1L);
+
+        Assertions.assertThrows(IllegalStateException.class, () ->
+                memberCouponService.issueCouponByUser(userId, couponId)
+        );
     }
 
     // ==========================================
