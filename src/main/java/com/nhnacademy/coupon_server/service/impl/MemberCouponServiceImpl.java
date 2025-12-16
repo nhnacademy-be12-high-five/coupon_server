@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service.impl;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
+import com.nhnacademy.coupon_server.dto.message.CouponIssueMessage;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
@@ -20,10 +21,13 @@ import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponReposito
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +42,8 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     private final MemberCouponRepository memberCouponRepository;
     private final CouponRepository couponRepository;
     private final CouponDateCalculator dateCalculator;
+    private final StringRedisTemplate redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     public Page<MemberCouponResponseDto> findAll(Pageable pageable) {
@@ -84,25 +90,43 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(CouponNotFoundException::new);
 
-        LocalDateTime now = LocalDateTime.now();
-        if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
-            throw new IllegalArgumentException("아직 발급 가능한 기간이 아닙니다.");
+        validateCouponValidity(coupon);
+        String issuedUserKey = "issued:users:" + couponId;
+        Long isAdded = redisTemplate.opsForSet().add(issuedUserKey, String.valueOf(userId));
+
+        if ((isAdded != null) && (isAdded == 0)) {
+            throw new DuplicateCouponException();
         }
-        if (coupon.getIssuedEndAt() != null && now.isAfter(coupon.getIssuedEndAt())) {
-            throw new IllegalArgumentException("발급 기간이 지났습니다.");
-        }
+
         if (coupon.getIssueCount() != null) {
-            long currentCount = memberCouponRepository.countByCouponId(couponId);
-            if (currentCount >= coupon.getIssueCount()) {
+            String countKey = "coupon:count:" + couponId;
+
+            redisTemplate.opsForValue().setIfAbsent(countKey, String.valueOf(coupon.getIssueCount()));
+            Long remainingCount = redisTemplate.opsForValue().decrement(countKey);
+
+            if (remainingCount != 0 && remainingCount < 0) {
+                redisTemplate.opsForValue().increment(countKey);
+                redisTemplate.opsForSet().remove(issuedUserKey, String.valueOf(userId));
                 throw new IllegalStateException("수량이 모두 매진되었습니다.");
             }
         }
-        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
-            throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 더 이상 발급받을 수 없습니다.");
-        }
+
+        CouponIssueMessage message = new CouponIssueMessage(userId, couponId);
+        rabbitTemplate.convertAndSend("coupon-issue-queue", message);
+        log.info("쿠폰 발급 요청 큐 적재 완료 - User: {}, Coupon: {}", userId, couponId);
+    }
+
+    @Override
+    @Transactional
+    public void createMemberCoupon(Long userId, Long couponId) {
+        log.info("DB 저장 시작 - Coupon: {}, User: {}", couponId, userId);
+
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(CouponNotFoundException::new);
 
         if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            throw new DuplicateCouponException();
+            log.warn("이미 DB에 저장된 쿠폰입니다. (Duplicate) - User: {}", userId);
+            return;
         }
 
         MemberCoupon memberCoupon = MemberCoupon.builder()
@@ -112,10 +136,11 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .issueAt(LocalDateTime.now())
                 .expiredAt(dateCalculator.calculateExpiration(coupon))
                 .build();
+
         try {
             memberCouponRepository.save(memberCoupon);
         } catch (DataIntegrityViolationException e) {
-            throw new DuplicateCouponException();
+            log.error("쿠폰 발급 중 데이터 무결성 오류 발생", e);
         }
     }
 
@@ -278,6 +303,19 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         } catch (DataIntegrityViolationException e) {
             // 이미 다른 스레드나 트랜잭션에서 발급함 -> 성공으로 간주하고 종료
             log.warn("이미 웰컴 쿠폰이 지급되었습니다. (중복 발급 방지) User: {}", memberId);
+        }
+    }
+
+    private void validateCouponValidity(Coupon coupon) {
+        LocalDateTime now = LocalDateTime.now();
+        if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
+            throw new IllegalArgumentException("아직 발급 가능한 기간이 아닙니다.");
+        }
+        if (coupon.getIssuedEndAt() != null && now.isAfter(coupon.getIssuedEndAt())) {
+            throw new IllegalArgumentException("발급 기간이 지났습니다.");
+        }
+        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+            throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 발급받을 수 없습니다.");
         }
     }
 }

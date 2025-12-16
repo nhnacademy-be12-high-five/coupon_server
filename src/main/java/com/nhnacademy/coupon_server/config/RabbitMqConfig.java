@@ -9,8 +9,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMqConfig {
     @Bean
-    public Queue messageConverter() {
+    public Queue WelcomeCouponQueue() {
         return new Queue("coupon-welcome-queue", true);
+    }
+
+    @Bean
+    public Queue issuesCouponQueue() {
+        return new Queue("issues-coupon-queue", true);
     }
 
     @Bean

@@ -29,4 +29,14 @@ public class CouponMessageListener {
         }
     }
 
+    @RabbitListener(queues = "coupon-issue-queue")
+    public void receiveIssueCouponRequest(CouponIssueMessage message) {
+        log.info("RabbitMQ 일반 쿠폰 발급 요청 수신 - UserId: {}, CouponId: {}", message.getMemberId(), message.getCouponId());
+        try {
+            memberCouponService.createMemberCoupon(message.getMemberId(), message.getCouponId());
+        } catch (Exception e) {
+            log.error("쿠폰 발급 DB 저장 실패 - User: {}, CouponId: {}", message.getMemberId(), message.getCouponId(), e);
+        }
+    }
+
 }

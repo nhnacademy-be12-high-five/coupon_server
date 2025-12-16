@@ -31,4 +31,6 @@ public interface MemberCouponService {
     void issueBirthdayCoupon(Long userId, Long couponId);
 
     void issueWelcomeCoupon(Long memberId);
+
+    void createMemberCoupon(Long userId, Long couponId);
 }
