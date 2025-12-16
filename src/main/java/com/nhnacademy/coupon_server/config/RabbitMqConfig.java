@@ -10,12 +10,12 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
     @Bean
     public Queue WelcomeCouponQueue() {
-        return new Queue("coupon-welcome-queue", true);
+        return new Queue("high-five-coupon-welcome-queue", true);
     }
 
     @Bean
     public Queue issuesCouponQueue() {
-        return new Queue("issues-coupon-queue", true);
+        return new Queue("high-five-coupon-issue-queue", true);
     }
 
     @Bean

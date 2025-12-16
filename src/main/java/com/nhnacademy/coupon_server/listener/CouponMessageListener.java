@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class CouponMessageListener {
     private final MemberCouponService memberCouponService;
 
-    @RabbitListener(queues = "coupon-welcome-queue")
+    @RabbitListener(queues = "high-five-coupon-welcome-queue")
     public void receiveWelcomeCouponRequest(CouponIssueMessage message) {
         log.info("RabbitMQ 웰컴 쿠폰 발급 요청 수신 - UserId: {}", message.getMemberId());
 
@@ -29,13 +29,16 @@ public class CouponMessageListener {
         }
     }
 
-    @RabbitListener(queues = "coupon-issue-queue")
+    @RabbitListener(queues = "high-five-coupon-issue-queue")
     public void receiveIssueCouponRequest(CouponIssueMessage message) {
         log.info("RabbitMQ 일반 쿠폰 발급 요청 수신 - UserId: {}, CouponId: {}", message.getMemberId(), message.getCouponId());
         try {
             memberCouponService.createMemberCoupon(message.getMemberId(), message.getCouponId());
         } catch (Exception e) {
             log.error("쿠폰 발급 DB 저장 실패 - User: {}, CouponId: {}", message.getMemberId(), message.getCouponId(), e);
+            if (e instanceof TransientDataAccessException || e instanceof AmqpException) {
+                throw e;
+            }
         }
     }
 

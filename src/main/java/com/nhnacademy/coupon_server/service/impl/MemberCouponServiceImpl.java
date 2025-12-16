@@ -22,11 +22,14 @@ import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,28 +95,47 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         validateCouponValidity(coupon);
         String issuedUserKey = "issued:users:" + couponId;
+        String countKey = "coupon:count:" + couponId;
         Long isAdded = redisTemplate.opsForSet().add(issuedUserKey, String.valueOf(userId));
+
+        if (coupon.getIssuedEndAt() != null) {
+            redisTemplate.expireAt(issuedUserKey,
+                    java.sql.Timestamp.valueOf(coupon.getIssuedEndAt().plusDays(1)));
+        }
 
         if ((isAdded != null) && (isAdded == 0)) {
             throw new DuplicateCouponException();
         }
 
         if (coupon.getIssueCount() != null) {
-            String countKey = "coupon:count:" + couponId;
 
-            redisTemplate.opsForValue().setIfAbsent(countKey, String.valueOf(coupon.getIssueCount()));
+
+            // 원자적 감소 (Atomic Decrement)
             Long remainingCount = redisTemplate.opsForValue().decrement(countKey);
 
-            if (remainingCount != 0 && remainingCount < 0) {
+            // 재고 부족 체크 (0 미만이면 매진)
+            if (remainingCount != null && remainingCount < 0) {
+                // 롤백: 감소시킨 값을 다시 증가시켜 원복
                 redisTemplate.opsForValue().increment(countKey);
+                // 유저 중복 체크 내역도 롤백
                 redisTemplate.opsForSet().remove(issuedUserKey, String.valueOf(userId));
+
                 throw new IllegalStateException("수량이 모두 매진되었습니다.");
             }
         }
 
-        CouponIssueMessage message = new CouponIssueMessage(userId, couponId);
-        rabbitTemplate.convertAndSend("coupon-issue-queue", message);
-        log.info("쿠폰 발급 요청 큐 적재 완료 - User: {}, Coupon: {}", userId, couponId);
+        try {
+            CouponIssueMessage message = new CouponIssueMessage(userId, couponId);
+            rabbitTemplate.convertAndSend("high-five-coupon-issue-queue", message);
+            log.info("쿠폰 발급 요청 큐 적재 완료 - User: {}, Coupon: {}", userId, couponId);
+        } catch (Exception e) {
+            log.error("메시지 큐 전송 실패, Redis 롤백 수행 - User: {}, Coupon: {}", userId, couponId, e);
+            redisTemplate.opsForSet().remove(issuedUserKey, String.valueOf(userId));
+            if (coupon.getIssueCount() != null) {
+                redisTemplate.opsForValue().increment(countKey);
+            }
+            throw new RuntimeException("쿠폰 발급 요청 실패", e);
+        }
     }
 
     @Override
@@ -140,7 +162,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         try {
             memberCouponRepository.save(memberCoupon);
         } catch (DataIntegrityViolationException e) {
-            log.error("쿠폰 발급 중 데이터 무결성 오류 발생", e);
+            if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+                log.warn("이미 발급된 쿠폰입니다. (중복 발급 방지) - User: {}, Coupon: {}", userId, couponId);
+                return;
+            }
+            log.error("쿠폰 발급 중 예기치 않은 무결성 오류 - User: {}, Coupon: {}", userId, couponId, e);
+            throw e;
         }
     }
 

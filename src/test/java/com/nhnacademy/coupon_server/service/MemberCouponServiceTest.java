@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
+import com.nhnacademy.coupon_server.dto.message.CouponIssueMessage;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
@@ -187,12 +188,12 @@ public class MemberCouponServiceTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         when(setOperations.add(anyString(), anyString())).thenReturn(1L);
-        when(valueOperations.setIfAbsent(anyString(), anyString())).thenReturn(true);
+
         when(valueOperations.decrement(anyString())).thenReturn(99L);
 
         memberCouponService.issueCouponByUser(userId, couponId);
 
-        verify(rabbitTemplate, times(1)).convertAndSend(eq("coupon-issue-queue"), any(Object.class));
+        verify(rabbitTemplate, times(1)).convertAndSend(eq("high-five-coupon-issue-queue"), any(CouponIssueMessage.class));
         verify(memberCouponRepository, never()).save(any());
     }
 
