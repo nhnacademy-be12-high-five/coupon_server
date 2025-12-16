@@ -256,7 +256,6 @@ public class MemberCouponServiceTest {
 
         when(setOperations.add(anyString(), anyString())).thenReturn(1L);
 
-        when(valueOperations.setIfAbsent(anyString(), anyString())).thenReturn(true);
         when(valueOperations.decrement(anyString())).thenReturn(-1L);
 
         Assertions.assertThrows(IllegalStateException.class, () ->
