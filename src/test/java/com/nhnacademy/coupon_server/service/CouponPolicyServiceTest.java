@@ -7,7 +7,7 @@ import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
-import com.nhnacademy.coupon_server.exception.ErrorCode; // [추가] ErrorCode Import
+import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyCategoryRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;

@@ -1,6 +1,5 @@
 package com.nhnacademy.coupon_server.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.service.client.MemberServiceClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
