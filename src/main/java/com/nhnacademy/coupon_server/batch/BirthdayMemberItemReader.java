@@ -1,7 +1,6 @@
 package com.nhnacademy.coupon_server.batch;
 
 import com.nhnacademy.coupon_server.service.client.MemberServiceClient;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemReader;
 

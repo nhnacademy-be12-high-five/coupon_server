@@ -39,7 +39,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = {"spring.cloud.config.enabled=false"}
 )
 class MemberCouponControllerTest {
-    private static final Long VALID_ORDER_PRICE = 30000L;
     private static final Long EXPECTED_DISCOUNT = 5000L;
     private static final Long EXPECTED_FINAL_PRICE = 25000L;
 
@@ -208,7 +207,6 @@ class MemberCouponControllerTest {
         Long userId = 1L;
         Long couponId = 100L;
         Long orderId = 20251127L;
-        Long totalOrderPrice = VALID_ORDER_PRICE;
         Long expectedDiscount = EXPECTED_DISCOUNT;
         Long expectedFinalPrice = EXPECTED_FINAL_PRICE;
 

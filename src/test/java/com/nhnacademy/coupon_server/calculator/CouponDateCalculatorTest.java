@@ -1,7 +1,6 @@
 package com.nhnacademy.coupon_server.calculator;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
-import jakarta.validation.constraints.AssertTrue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
