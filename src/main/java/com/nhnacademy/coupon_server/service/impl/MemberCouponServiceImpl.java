@@ -46,6 +46,29 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
     @Override
     @Transactional
+    public void createMemberCoupon(Long userId, Long couponId) {
+        log.info("DB 저장 시작 - Coupon: {}, User: {}", couponId, userId);
+
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(CouponNotFoundException::new);
+
+        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+            throw new DuplicateCouponException();
+        }
+
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .coupon(coupon)
+                .userId(userId)
+                .status(Status.ISSUED)
+                .issueAt(LocalDateTime.now())
+                .expiredAt(dateCalculator.calculateExpiration(coupon))
+                .build();
+
+        memberCouponRepository.save(memberCoupon);
+    }
+
+    @Override
+    @Transactional
     public void issueCouponByAdmin(MemberCouponIssueRequestDto requestDto) {
         Long userId = requestDto.getUserId();
         Long couponId = requestDto.getCouponId();

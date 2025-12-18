@@ -18,9 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,6 +35,8 @@ public class CouponServiceImpl implements CouponService {
     private final CouponPolicyRepository couponPolicyRepository;
     private final CouponRepository couponRepository;
     private final MemberCouponRepository memberCouponRepository;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisTemplate<Object, Object> redisTemplate;
 
     @Override
     @Transactional
@@ -55,6 +60,14 @@ public class CouponServiceImpl implements CouponService {
                 .build();
 
         Coupon savedCoupon = couponRepository.save(coupon);
+
+        if (savedCoupon.getIssueCount() != null) {
+            String countKey = "coupon:count:" + savedCoupon.getId();
+            redisTemplate.opsForValue().set(countKey, String.valueOf(savedCoupon.getIssueCount()));
+            if (savedCoupon.getIssuedEndAt() != null) {
+                redisTemplate.expireAt(countKey, Timestamp.valueOf(savedCoupon.getIssuedEndAt().plusDays(1)));
+            }
+        }
         return CouponResponseDto.fromEntity(savedCoupon);
     }
 
