@@ -41,8 +41,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
     @Override
     public Page<MemberCouponResponseDto> findAll(Pageable pageable) {
-        Page<MemberCoupon> memberCoupons = memberCouponRepository.findAll(pageable);
-        return memberCoupons.map(MemberCouponResponseDto::fromEntity);
+        return memberCouponRepository.findAll(pageable).map(MemberCouponResponseDto::fromEntity);
     }
 
     @Override
@@ -53,7 +52,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         log.info("관리자 수동 발급 요청 - Coupon: {}, User: {}", couponId, userId);
 
-        Coupon coupon = couponRepository.findById(couponId).orElseThrow(CouponNotFoundException::new);
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> {
+                    log.warn("쿠폰을 찾을 수 없음: {}", couponId);
+                    return new CouponNotFoundException();
+                });
+
         if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
             throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 발급할 수 없습니다.");
         }
@@ -82,7 +86,10 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         log.info("사용자 쿠폰 발급 요청 - Coupon: {}, User: {}", couponId, userId);
 
         Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(CouponNotFoundException::new);
+                .orElseThrow(() -> {
+                    log.warn("발급 대상 쿠폰 없음: {}", couponId);
+                    return new CouponNotFoundException();
+                });
 
         LocalDateTime now = LocalDateTime.now();
         if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
@@ -121,23 +128,34 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
     @Override
     public Page<MemberCouponResponseDto> findCouponByUserId(Long userId, Pageable pageable) {
-        Page<MemberCoupon> memberCoupons = memberCouponRepository.findByUserId(userId, pageable);
-        return memberCoupons.map(MemberCouponResponseDto::fromEntity);
+        return memberCouponRepository.findByUserId(userId, pageable).map(MemberCouponResponseDto::fromEntity);
     }
 
     @Override
     public List<MemberCouponResponseDto> findUsableCoupons(Long userId) {
-        List<MemberCoupon> memberCoupons = memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, LocalDateTime.now());
-        return memberCoupons.stream().map(MemberCouponResponseDto::fromEntity).toList();
+        return memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, LocalDateTime.now())
+                .stream().map(MemberCouponResponseDto::fromEntity).toList();
     }
 
+    // [수정됨] 쿠폰 할인 계산
     @Override
     public CouponCalculationResponseDto calculateDiscount(Long userId, CouponCalculationRequestDto requestDto) {
-        Long couponId = requestDto.getCouponId();
+        // requestDto.getCouponId()는 MemberCoupon의 ID (PK)입니다.
+        Long memberCouponId = requestDto.getCouponId();
         Long orderPrice = requestDto.getTotalOrderPrice();
 
-        MemberCoupon memberCoupon = memberCouponRepository.findByUserIdAndCouponId(userId, couponId)
-                .orElseThrow(CouponNotFoundException::new);
+        // 1. 발급된 쿠폰 ID(PK)로 조회
+        MemberCoupon memberCoupon = memberCouponRepository.findById(memberCouponId)
+                .orElseThrow(() -> {
+                    log.error("할인 계산 실패 - 존재하지 않는 MemberCoupon ID: {}", memberCouponId);
+                    return new CouponNotFoundException();
+                });
+
+        // 2. 소유자 검증
+        if (!memberCoupon.getUserId().equals(userId)) {
+            log.warn("쿠폰 소유자 불일치 - 요청자: {}, 소유자: {}", userId, memberCoupon.getUserId());
+            throw new IllegalArgumentException("해당 쿠폰의 소유자가 아닙니다.");
+        }
 
         if (memberCoupon.getStatus() != Status.ISSUED) {
             throw new IllegalStateException("이미 사용했거나 만료된 쿠폰입니다.");
@@ -171,13 +189,23 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .build();
     }
 
+    // [수정됨] 쿠폰 사용 처리
     @Override
     @Transactional
     public void useCoupon(Long userId, MemberCouponUseRequestDto requestDto) {
-        Long couponId = requestDto.getCouponId();
+        Long memberCouponId = requestDto.getCouponId();
 
-        MemberCoupon memberCoupon = memberCouponRepository.findByUserIdAndCouponId(userId, couponId)
-                .orElseThrow(CouponNotFoundException::new);
+        // 1. 발급된 쿠폰 ID(PK)로 조회
+        MemberCoupon memberCoupon = memberCouponRepository.findById(memberCouponId)
+                .orElseThrow(() -> {
+                    log.error("쿠폰 사용 실패 - 존재하지 않는 MemberCoupon ID: {}", memberCouponId);
+                    return new CouponNotFoundException();
+                });
+
+        // 2. 소유자 검증
+        if (!memberCoupon.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("해당 쿠폰의 소유자가 아닙니다.");
+        }
 
         if (memberCoupon.getStatus() == Status.USED) {
             throw new IllegalStateException("이미 사용된 쿠폰입니다.");
@@ -190,24 +218,28 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         }
 
         memberCoupon.use(requestDto.getOrderId());
-        // MemberCoupon 엔티티에 setOrderId가 없다면 추가 필요 (Lombok @Setter가 있다면 가능)
-        // memberCoupon.setOrderId(requestDto.getOrderId());
     }
 
+    // [수정됨] 쿠폰 사용 취소
     @Override
     @Transactional
     public void cancelCouponUsage(Long userId, MemberCouponCancelRequestDto requestDto) {
-        Long couponId = requestDto.getCouponId();
-        Long orderId = requestDto.getOrderId();
+        Long memberCouponId = requestDto.getCouponId();
 
-        MemberCoupon memberCoupon = memberCouponRepository.findByUserIdAndCouponId(userId, couponId)
-                .orElseThrow(CouponNotFoundException::new);
+        // 1. 발급된 쿠폰 ID(PK)로 조회
+        MemberCoupon memberCoupon = memberCouponRepository.findById(memberCouponId)
+                .orElseThrow(() -> {
+                    log.error("쿠폰 취소 실패 - 존재하지 않는 MemberCoupon ID: {}", memberCouponId);
+                    return new CouponNotFoundException();
+                });
+
+        // 2. 소유자 검증
+        if (!memberCoupon.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("해당 쿠폰의 소유자가 아닙니다.");
+        }
 
         if (memberCoupon.getStatus() != Status.USED) {
             throw new IllegalStateException("사용된 상태의 쿠폰만 취소할 수 있습니다.");
-        }
-        if (memberCoupon.getOrderId() != null && !memberCoupon.getOrderId().equals(orderId)) {
-            throw new IllegalArgumentException("해당 주문에서 사용된 쿠폰이 아닙니다.");
         }
 
         memberCoupon.cancel();
@@ -219,7 +251,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", memberId, couponId);
 
         Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(CouponNotFoundException::new);
+                .orElseThrow(() -> new CouponNotFoundException());
 
         if (memberCouponRepository.existsByUserIdAndCouponId(memberId, couponId)) {
             log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", memberId);
@@ -227,15 +259,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime endOfMonth = now.withDayOfMonth(now.toLocalDate().lengthOfMonth())
-                .withHour(23).withMinute(59).withSecond(59);
-
         MemberCoupon memberCoupon = MemberCoupon.builder()
                 .coupon(coupon)
                 .userId(memberId)
                 .status(Status.ISSUED)
                 .issueAt(now)
-                .expiredAt(endOfMonth)
+                .expiredAt(now.withDayOfMonth(now.toLocalDate().lengthOfMonth()).withHour(23).withMinute(59).withSecond(59))
                 .build();
         try {
             memberCouponRepository.save(memberCoupon);
@@ -251,10 +280,11 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(
                 Comment.WELCOME,
                 CouponPolicyStatus.ACTIVE,
-                PageRequest.of(0, 1) // 0페이지에서 1개만 조회 (= LIMIT 1)
+                PageRequest.of(0, 1)
         );
 
         if (coupons.isEmpty()) {
+            // 웰컴 쿠폰 정책이 없으면 예외 던짐 (또는 조용히 로그만 남기고 종료)
             throw new CouponNotFoundException();
         }
         Coupon welcomeCoupon = coupons.get(0);
@@ -276,7 +306,6 @@ public class MemberCouponServiceImpl implements MemberCouponService {
             memberCouponRepository.save(memberCoupon);
             log.info("웰컴 쿠폰 지급 완료! User: {}, Coupon: {}", memberId, welcomeCoupon.getCouponName());
         } catch (DataIntegrityViolationException e) {
-            // 이미 다른 스레드나 트랜잭션에서 발급함 -> 성공으로 간주하고 종료
             log.warn("이미 웰컴 쿠폰이 지급되었습니다. (중복 발급 방지) User: {}", memberId);
         }
     }
