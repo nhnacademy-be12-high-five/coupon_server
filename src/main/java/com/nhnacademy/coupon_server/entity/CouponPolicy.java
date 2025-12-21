@@ -6,6 +6,7 @@ import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,7 +77,10 @@ public class CouponPolicy {
         if (this.discountType == DiscountType.FIXED) {
             discountAmount = this.discountValue;
         } else if (this.discountType == DiscountType.PERCENTAGE) {
-            discountAmount = (orderPrice * this.discountValue) / 100;
+            discountAmount = java.math.BigDecimal.valueOf(orderPrice)
+                    .multiply(java.math.BigDecimal.valueOf(this.discountValue))
+                    .divide(java.math.BigDecimal.valueOf(100), RoundingMode.DOWN)
+                    .longValue();
         }
 
         if (this.maxDiscountValue != null && discountAmount > this.maxDiscountValue) {

@@ -2,13 +2,12 @@ package com.nhnacademy.coupon_server.service.impl;
 
 import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
-import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
-import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
-import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
@@ -24,6 +23,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,10 +97,16 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         String countKey = "coupon:count:" + couponId;
         if (coupon.getIssueCount() != null) {
-            Long remainingCount = redisTemplate.opsForValue().decrement(countKey);
-            if (remainingCount != null && remainingCount < 0) {
-                redisTemplate.opsForValue().increment(countKey);
-                throw new IllegalStateException("수량이 모두 매진되었습니다.");
+            try {
+                Long remainingCount = redisTemplate.opsForValue().decrement(countKey);
+
+                if (remainingCount != null && remainingCount < 0) {
+                    redisTemplate.opsForValue().increment(countKey);
+                    throw new IllegalStateException("수량이 모두 매진되었습니다.");
+                }
+            } catch (RedisConnectionFailureException | RedisSystemException e) {
+                log.error("Redis 장애 발생으로 쿠폰 발급 중단 - Coupon: {}, User: {}, Error: {}", couponId, userId, e.getMessage());
+                throw new IllegalStateException("시스템 오류로 인해 쿠폰 발급을 진행할 수 없습니다.");
             }
         }
 

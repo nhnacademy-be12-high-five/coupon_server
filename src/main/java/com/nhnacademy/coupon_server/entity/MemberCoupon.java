@@ -71,7 +71,7 @@ public class MemberCoupon {
         if (this.status != Status.ISSUED) {
             throw new IllegalStateException("이미 사용했거나 사용할 수 없는 쿠폰입니다.");
         }
-        if (this.expiredAt.isBefore(LocalDateTime.now())) {
+        if (this.expiredAt != null && this.expiredAt.isBefore(LocalDateTime.now())) {
             throw new IllegalStateException("유효 기간이 지난 쿠폰입니다.");
         }
     }

@@ -2,6 +2,7 @@ package com.nhnacademy.coupon_server.controller;
 
 import com.nhnacademy.coupon_server.controller.apidocs.CouponAdminDocs;
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.request.CouponStatusRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.service.CouponService;
 import lombok.RequiredArgsConstructor;
@@ -9,12 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 
 @RestController
@@ -39,9 +39,8 @@ public class CouponAdminController implements CouponAdminDocs {
 
     @Override
     public ResponseEntity<Void> updateCouponStatus(@PathVariable Long couponId,
-                                                   @RequestParam Map<String, String> body) {
-        String status = body.get("status");
-        couponService.updateCouponStatus(couponId, status);
+                                                   @RequestBody CouponStatusRequestDto requestDto) {
+        couponService.updateCouponStatus(couponId, requestDto.getStatus());
         return ResponseEntity.ok().build();
     }
 }

@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.controller.apidocs;
 
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.request.CouponStatusRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,10 +12,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "CouponAdmin", description = "관리자 전용 쿠폰 템플릿 관리 API")
 public interface CouponAdminDocs {
@@ -41,7 +44,7 @@ public interface CouponAdminDocs {
     @PostMapping("/{couponId}/change-status")
     ResponseEntity<Void> updateCouponStatus(
             @Parameter(description = "쿠폰 ID", required = true) @PathVariable Long couponId,
-            @Parameter(description = "변경할 상태 (ACTIVE, INACTIVE)", required = true) @RequestParam Map<String, String> body
-    );
+            @Valid @Parameter(description = "변경할 상태 (ACTIVE, INACTIVE)", required = true) @RequestBody CouponStatusRequestDto requestDto
+            );
 
 }
