@@ -66,4 +66,23 @@ public class CouponPolicy {
     public void disable() {
         this.status = CouponPolicyStatus.INACTIVE;
     }
+
+    public long calculateDiscountAmount(long orderPrice) {
+        if (this.minOrderValue != null && orderPrice < this.minOrderValue) {
+            throw new IllegalArgumentException("최소 주문 금액(" + this.minOrderValue + "원)을 충족하지 못했습니다.");
+        }
+        long discountAmount = 0;
+
+        if (this.discountType == DiscountType.FIXED) {
+            discountAmount = this.discountValue;
+        } else if (this.discountType == DiscountType.PERCENTAGE) {
+            discountAmount = (orderPrice * this.discountValue) / 100;
+        }
+
+        if (this.maxDiscountValue != null && discountAmount > this.maxDiscountValue) {
+            discountAmount = this.maxDiscountValue;
+        }
+
+        return Math.min(discountAmount, orderPrice);
+    }
 }

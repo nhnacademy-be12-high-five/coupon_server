@@ -8,10 +8,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -32,5 +35,13 @@ public class CouponAdminController implements CouponAdminDocs {
     public ResponseEntity<List<CouponResponseDto>> findAllCoupons() {
         List<CouponResponseDto> couponList = couponService.findAll();
         return ResponseEntity.status(HttpStatus.OK).body(couponList);
+    }
+
+    @Override
+    public ResponseEntity<Void> updateCouponStatus(@PathVariable Long couponId,
+                                                   @RequestParam Map<String, String> body) {
+        String status = body.get("status");
+        couponService.updateCouponStatus(couponId, status);
+        return ResponseEntity.ok().build();
     }
 }

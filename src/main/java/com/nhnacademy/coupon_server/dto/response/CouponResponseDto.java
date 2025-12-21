@@ -2,6 +2,7 @@ package com.nhnacademy.coupon_server.dto.response;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponState;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -22,6 +23,7 @@ public class CouponResponseDto {
     private Integer remainingCount;
     private String status;
     private String couponType;
+    private String policyStatus;
 
     public static CouponResponseDto fromEntity(Coupon coupon) {
         return fromEntity(coupon, null);
@@ -31,7 +33,7 @@ public class CouponResponseDto {
         String status;
         LocalDateTime now = LocalDateTime.now();
 
-        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+        if (coupon.getState() == CouponState.INACTIVE || coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
             status = "INACTIVE";
         } else if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
             status = "WAITING";
@@ -53,8 +55,9 @@ public class CouponResponseDto {
                 .validPeriodDate(coupon.getValidPeriodDate())
                 .validEndAt(coupon.getValidEndAt())
                 .remainingCount(remainingCount)
-                .status(status)
                 .couponType(coupon.getCouponType().toString())
+                .status(status)
+                .policyStatus(coupon.getCouponPolicy().getStatus().name())
                 .build();
     }
 }

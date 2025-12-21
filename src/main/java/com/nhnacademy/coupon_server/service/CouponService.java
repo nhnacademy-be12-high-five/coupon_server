@@ -24,4 +24,6 @@ public interface CouponService {
     Page<CouponResponseDto> getCoupons(Pageable pageable);
 
     List<CouponResponseDto> findCouponsByBookId(Long bookId);
+
+    void updateCouponStatus(Long couponId, String status);
 }

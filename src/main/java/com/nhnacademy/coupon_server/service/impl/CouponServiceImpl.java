@@ -5,7 +5,9 @@ import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponState;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
+import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.exception.CouponServerException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
@@ -149,5 +151,18 @@ public class CouponServiceImpl implements CouponService {
                     return CouponResponseDto.fromEntity(coupon, remainingCount);
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateCouponStatus(Long couponId, String status) {
+        Coupon coupon = couponRepository.findById(couponId).orElseThrow(() -> new CouponServerException(ErrorCode.COUPON_NOT_FOUND));
+
+        try {
+            CouponState newStatus = CouponState.valueOf(status.toUpperCase());
+            coupon.updateStatus(newStatus);
+        } catch (IllegalArgumentException e) {
+            throw new CouponServerException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 }

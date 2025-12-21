@@ -35,6 +35,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -57,18 +59,24 @@ public class MemberCouponServiceTest {
     @Mock
     private CouponDateCalculator dateCalculator;
 
-    // Redis, RabbitMQ 관련 Mock 제거됨
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
 
     private MemberCouponServiceImpl memberCouponService;
     private final GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
 
     @BeforeEach
     public void setUp() {
-        // 생성자에서 Redis, RabbitTemplate 제거
+
         memberCouponService = new MemberCouponServiceImpl(
                 memberCouponRepository,
                 couponRepository,
-                dateCalculator
+                dateCalculator,
+                redisTemplate
         );
     }
 
@@ -147,7 +155,9 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(50L); // 재고 여유 있음
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(99L);
+
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false); // 중복 아님
         when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
 
@@ -155,6 +165,7 @@ public class MemberCouponServiceTest {
 
         // RabbitMQ가 아니라 DB save가 호출되어야 함
         verify(memberCouponRepository, times(1)).save(any(MemberCoupon.class));
+        verify(valueOperations, never()).increment(anyString());
     }
 
     @Test
@@ -244,11 +255,10 @@ public class MemberCouponServiceTest {
         Coupon coupon = Coupon.builder().id(couponId).build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(true);
         // 말일 계산이 로직 내에 포함되어 있음 -> 별도 Mocking 불필요 (Repository 호출만 확인)
-
-        doThrow(DataIntegrityViolationException.class).when(memberCouponRepository).save(any(MemberCoupon.class));
-
         assertDoesNotThrow(() -> memberCouponService.issueBirthdayCoupon(userId, couponId));
+        verify(memberCouponRepository, never()).save(any());
     }
 
     @Test
