@@ -46,9 +46,8 @@ class CouponServiceTest {
     @Mock
     private MemberCouponRepository memberCouponRepository;
     @Mock
-    private RedisTemplate<Object, Object> objectRedisTemplate;
+    private RedisTemplate<Object, Object> redisTemplate;
 
-    // [추가] Redis 연산을 위한 Mock 객체
     @Mock
     private ValueOperations<Object, Object> valueOperations;
 
@@ -60,14 +59,13 @@ class CouponServiceTest {
                 couponPolicyRepository,
                 couponRepository,
                 memberCouponRepository,
-                objectRedisTemplate
+                redisTemplate
         );
     }
 
     @Test
     @DisplayName("쿠폰 템플릿 생성 성공 - Redis 저장 로직 포함")
     void createCouponSuccess() {
-        // Given
         Long policyId = 1L;
         CouponPolicy mockPolicy = CouponPolicy.builder()
                 .id(policyId)
@@ -96,7 +94,7 @@ class CouponServiceTest {
         when(couponRepository.save(any(Coupon.class))).thenReturn(mockCoupon);
 
         // [추가] Redis Mocking (NPE 방지 핵심)
-        when(objectRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         // When
         CouponResponseDto responseDto = couponService.create(requestDto);
@@ -110,7 +108,7 @@ class CouponServiceTest {
         // [추가] Redis에 수량이 저장되었는지 검증
         verify(valueOperations).set(eq("coupon:count:100"), eq("100"));
         // 만료 시간 설정 검증
-        verify(objectRedisTemplate).expireAt(eq("coupon:count:100"), any(java.util.Date.class));
+        verify(redisTemplate).expireAt(eq("coupon:count:100"), any(java.util.Date.class));
     }
 
     @Test
@@ -303,7 +301,7 @@ class CouponServiceTest {
     @DisplayName("쿠폰 상태 변경 성공 (ACTIVE -> INACTIVE)")
     void updateCouponStatus_Success() {
         Long couponId = 1L;
-        String newStatus = "INACTIVE";
+        CouponStatus newStatus = CouponStatus.INACTIVE;
 
         Coupon coupon = Coupon.builder()
                 .id(couponId)
@@ -322,7 +320,7 @@ class CouponServiceTest {
     @DisplayName("쿠폰 상태 변경 실패 - 존재하지 않는 쿠폰")
     void updateCouponStatus_Fail_NotFound() {
         Long couponId = 999L;
-        String newStatus = "INACTIVE";
+        CouponStatus newStatus = CouponStatus.INACTIVE;
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.empty());
 
@@ -334,22 +332,86 @@ class CouponServiceTest {
     }
 
     @Test
-    @DisplayName("쿠폰 상태 변경 실패 - 잘못된 상태 값 입력")
-    void updateCouponStatus_Fail_InvalidStatus() {
+    @DisplayName("재발행 시나리오: INACTIVE -> ACTIVE 전환 시 Redis 재고 복원 여부")
+    void updateCouponStatus_Reissue_RestoresRedis() {
+        // Given
         Long couponId = 1L;
-        String invalidStatus = "WRONG_STATUS";
-
+        // 기존 상태 INACTIVE
         Coupon coupon = Coupon.builder()
                 .id(couponId)
-                .status(CouponStatus.ACTIVE)
+                .status(CouponStatus.INACTIVE)
+                .issueCount(100)
+                .issuedEndAt(LocalDateTime.now().plusDays(5))
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
 
-        CouponServerException exception = Assertions.assertThrows(CouponServerException.class, () -> {
-            couponService.updateCouponStatus(couponId, invalidStatus);
-        });
+        // Mock: Redis 키가 없는 상황 (만료됨)
+        when(redisTemplate.hasKey("coupon:count:" + couponId)).thenReturn(false);
+        // Mock: DB 발급 수량 20장 가정 (잔여 80장)
+        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(20L);
 
-        Assertions.assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
+        // Redis Ops Mocking
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        // When
+        couponService.updateCouponStatus(couponId, CouponStatus.ACTIVE);
+
+        // Then
+        // 1. 상태 변경 확인
+        Assertions.assertEquals(CouponStatus.ACTIVE, coupon.getStatus());
+
+        // 2. Redis 복구 로직 실행 확인 (잔여 80개 세팅)
+        verify(valueOperations).set("coupon:count:" + couponId, "80");
+        // 3. 만료 시간 설정 확인
+        verify(redisTemplate).expire(eq("coupon:count:" + couponId), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("재발행 시나리오: 이미 Redis 키가 존재하면 덮어쓰지 않음")
+    void updateCouponStatus_Reissue_SkipIfRedisExists() {
+        // Given
+        Long couponId = 1L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .status(CouponStatus.INACTIVE)
+                .issueCount(100)
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        // Mock: Redis 키가 이미 존재함
+        when(redisTemplate.hasKey("coupon:count:" + couponId)).thenReturn(true);
+
+        // When
+        couponService.updateCouponStatus(couponId, CouponStatus.ACTIVE);
+
+        // Then
+        Assertions.assertEquals(CouponStatus.ACTIVE, coupon.getStatus());
+
+        // Redis set은 호출되지 않아야 함
+        verify(redisTemplate, never()).opsForValue();
+    }
+
+    @Test
+    @DisplayName("멱등성: 동일 상태로 변경 시도 시 무시 (예외 발생 X, 로직 수행 X)")
+    void updateCouponStatus_Idempotency() {
+        // Given
+        Long couponId = 1L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .status(CouponStatus.ACTIVE) // 이미 ACTIVE
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        // When
+        couponService.updateCouponStatus(couponId, CouponStatus.ACTIVE);
+
+        // Then
+        // 상태 변경 로직이 실행되지 않았으므로 Redis 체크도 없어야 함
+        verify(redisTemplate, never()).hasKey(anyString());
+        // 상태는 그대로 유지
+        Assertions.assertEquals(CouponStatus.ACTIVE, coupon.getStatus());
     }
 }

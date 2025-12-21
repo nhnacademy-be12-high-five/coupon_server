@@ -142,6 +142,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         long discountAmount = memberCoupon.getCoupon().getCouponPolicy().calculateDiscountAmount(requestDto.getTotalOrderPrice());
 
+        if (discountAmount > requestDto.getTotalOrderPrice()) {
+            log.warn("할인 금액이 주문 금액 초과 - MemberCoupon: {}, 주문금액: {}, 할인금액: {}",
+                    requestDto.getCouponId(), requestDto.getTotalOrderPrice(), discountAmount);
+            discountAmount = requestDto.getTotalOrderPrice();
+        }
+
         return CouponCalculationResponseDto.builder()
                 .discountAmount(discountAmount)
                 .finalPrice(requestDto.getTotalOrderPrice() - discountAmount)

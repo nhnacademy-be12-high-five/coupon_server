@@ -44,7 +44,7 @@ public interface CouponAdminDocs {
     @PostMapping("/{couponId}/change-status")
     ResponseEntity<Void> updateCouponStatus(
             @Parameter(description = "쿠폰 ID", required = true) @PathVariable Long couponId,
-            @Valid @Parameter(description = "변경할 상태 (ACTIVE, INACTIVE)", required = true) @RequestBody CouponStatusRequestDto requestDto
+            @Parameter(description = "변경할 상태 (ACTIVE, INACTIVE)", required = true) @Valid @RequestBody CouponStatusRequestDto requestDto
             );
 
 }

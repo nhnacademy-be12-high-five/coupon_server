@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -152,14 +153,50 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     @Transactional
-    public void updateCouponStatus(Long couponId, String status) {
+    public void updateCouponStatus(Long couponId, CouponStatus status) {
         Coupon coupon = couponRepository.findById(couponId).orElseThrow(() -> new CouponServerException(ErrorCode.COUPON_NOT_FOUND));
-
         try {
-            CouponStatus newStatus = CouponStatus.valueOf(status.toUpperCase());
+            CouponStatus newStatus = CouponStatus.valueOf(status.toString());
+            CouponStatus oldStatus = coupon.getStatus();
+
+            // 1. 멱등성 검사: 이미 같은 상태라면 무시
+            if (oldStatus == newStatus) {
+                log.info("쿠폰 상태 변경 무시 (이미 {} 상태임) - CouponId: {}", newStatus, couponId);
+                return;
+            }
+
+            // 2. 상태 변경
             coupon.updateStatus(newStatus);
+
+            // 3. 재발행(INACTIVE -> ACTIVE) 시 Redis 재고 동기화 로직
+            if (oldStatus == CouponStatus.INACTIVE && newStatus == CouponStatus.ACTIVE) {
+                restoreRedisStock(coupon);
+            }
+
         } catch (IllegalArgumentException e) {
             throw new CouponServerException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+    }
+
+    private void restoreRedisStock(Coupon coupon) {
+        if (coupon.getIssueCount() == null) return; // 무제한 쿠폰은 스킵
+
+        String countKey = "coupon:count:" + coupon.getId();
+        // 키가 없을 때만 복구 (이미 있으면 기존 수량 유지)
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(countKey))) {
+            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+            long remainingCount = Math.max(0, coupon.getIssueCount() - issuedCount);
+
+            redisTemplate.opsForValue().set(countKey, String.valueOf(remainingCount));
+
+            // 만료 시간 재설정 (쿠폰 종료일 + 1일)
+            if (coupon.getIssuedEndAt() != null) {
+                long ttl = java.sql.Timestamp.valueOf(coupon.getIssuedEndAt().plusDays(1)).getTime() - System.currentTimeMillis();
+                if (ttl > 0) {
+                    redisTemplate.expire(countKey, ttl, TimeUnit.MILLISECONDS);
+                }
+            }
+            log.info("재발행 쿠폰 Redis 재고 복구 완료 - CouponId: {}, Count: {}", coupon.getId(), remainingCount);
         }
     }
 }

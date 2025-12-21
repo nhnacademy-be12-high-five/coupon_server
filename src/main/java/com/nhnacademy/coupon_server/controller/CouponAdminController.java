@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.request.CouponStatusRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.service.CouponService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,7 @@ public class CouponAdminController implements CouponAdminDocs {
 
     @Override
     public ResponseEntity<Void> updateCouponStatus(@PathVariable Long couponId,
-                                                   @RequestBody CouponStatusRequestDto requestDto) {
+                                                   @Valid @RequestBody CouponStatusRequestDto requestDto) {
         couponService.updateCouponStatus(couponId, requestDto.getStatus());
         return ResponseEntity.ok().build();
     }
