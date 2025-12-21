@@ -2,12 +2,12 @@ package com.nhnacademy.coupon_server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
-import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
-import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
-import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.request.UserCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.CouponServerException;
@@ -32,7 +32,8 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
         controllers = MemberCouponController.class,

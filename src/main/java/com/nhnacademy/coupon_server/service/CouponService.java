@@ -2,6 +2,7 @@ package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
+import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -24,4 +25,6 @@ public interface CouponService {
     Page<CouponResponseDto> getCoupons(Pageable pageable);
 
     List<CouponResponseDto> findCouponsByBookId(Long bookId);
+
+    void updateCouponStatus(Long couponId, CouponStatus status);
 }

@@ -2,7 +2,9 @@ package com.nhnacademy.coupon_server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.request.CouponStatusRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
+import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.service.CouponService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,10 +18,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
         controllers = CouponAdminController.class,
@@ -88,6 +93,34 @@ public class CouponAdminControllerTest {
                 .andExpect(jsonPath("$.size()").value(2))
                 .andExpect(jsonPath("$[0].couponName").value("여름 세일 쿠폰"))
                 .andExpect(jsonPath("$[1].couponName").value("겨울 세일 쿠폰"));
+    }
+
+    @Test
+    @DisplayName("쿠폰 상태 변경 성공")
+    void updateCouponStatus_Success() throws Exception {
+        Long couponId = 100L;
+        CouponStatusRequestDto requestDto = new CouponStatusRequestDto(CouponStatus.ACTIVE);
+
+        doNothing().when(couponService).updateCouponStatus(couponId, CouponStatus.ACTIVE);
+
+        mockMvc.perform(post("/api/coupons/admin/coupons/{couponId}/change-status", couponId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("쿠폰 상태 변경 실패 - null 상태값")
+    void updateCouponStatus_Fail_NullStatus() throws Exception {
+        Long couponId = 100L;
+        CouponStatusRequestDto requestDto = new CouponStatusRequestDto(null);
+
+        mockMvc.perform(post("/api/coupons/admin/coupons/{couponId}/change-status", couponId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
     }
 
 }

@@ -15,7 +15,6 @@ import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
-import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.exception.GlobalExceptionHandler;
@@ -35,11 +34,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,19 +58,20 @@ public class MemberCouponServiceTest {
     @Mock
     private CouponDateCalculator dateCalculator;
 
-    // Redis, RabbitMQ 관련 Mock 제거됨
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
 
     private MemberCouponServiceImpl memberCouponService;
     private final GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
 
     @BeforeEach
     public void setUp() {
-        // 생성자에서 Redis, RabbitTemplate 제거
-        memberCouponService = new MemberCouponServiceImpl(
-                memberCouponRepository,
-                couponRepository,
-                dateCalculator
-        );
+
+        memberCouponService = new MemberCouponServiceImpl(memberCouponRepository, couponRepository, dateCalculator, redisTemplate);
     }
 
     // ==========================================
@@ -147,7 +149,9 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(50L); // 재고 여유 있음
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(99L);
+
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false); // 중복 아님
         when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
 
@@ -155,6 +159,7 @@ public class MemberCouponServiceTest {
 
         // RabbitMQ가 아니라 DB save가 호출되어야 함
         verify(memberCouponRepository, times(1)).save(any(MemberCoupon.class));
+        verify(valueOperations, never()).increment(anyString());
     }
 
     @Test
@@ -173,7 +178,8 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(99L);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(99L);
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
         when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
 
@@ -183,6 +189,7 @@ public class MemberCouponServiceTest {
         Assertions.assertThrows(DuplicateCouponException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
+        verify(valueOperations, times(1)).increment("coupon:count:" + couponId);
     }
 
     @Test
@@ -210,11 +217,41 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(100L); // 이미 100개 다 나감
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(-1L);
 
         Assertions.assertThrows(IllegalStateException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
+        verify(valueOperations).increment("coupon:count:" + couponId);
+    }
+
+    @Test
+    @DisplayName("사용자 발급 실패 - Redis 연결 장애 발생")
+    void issueCouponByUser_Fail_RedisError() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .issueCount(100)
+                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .issuedStartAt(LocalDateTime.now().minusDays(1))
+                .issuedEndAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        when(valueOperations.decrement("coupon:count:" + couponId))
+                .thenThrow(new RedisConnectionFailureException("Redis Connection Failed"));
+
+        IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class, () ->
+                memberCouponService.issueCouponByUser(userId, couponId)
+        );
+
+        Assertions.assertEquals("시스템 오류로 인해 쿠폰 발급을 진행할 수 없습니다.", exception.getMessage());
+
+        verify(memberCouponRepository, never()).save(any());
     }
 
     // ==========================================
@@ -244,11 +281,10 @@ public class MemberCouponServiceTest {
         Coupon coupon = Coupon.builder().id(couponId).build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(true);
         // 말일 계산이 로직 내에 포함되어 있음 -> 별도 Mocking 불필요 (Repository 호출만 확인)
-
-        doThrow(DataIntegrityViolationException.class).when(memberCouponRepository).save(any(MemberCoupon.class));
-
         assertDoesNotThrow(() -> memberCouponService.issueBirthdayCoupon(userId, couponId));
+        verify(memberCouponRepository, never()).save(any());
     }
 
     @Test
