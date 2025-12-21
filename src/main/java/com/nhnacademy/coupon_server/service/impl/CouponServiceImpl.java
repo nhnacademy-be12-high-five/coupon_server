@@ -5,9 +5,8 @@ import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
-import com.nhnacademy.coupon_server.entity.state.CouponState;
+import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
-import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.exception.CouponServerException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
@@ -37,7 +36,6 @@ public class CouponServiceImpl implements CouponService {
     private final CouponPolicyRepository couponPolicyRepository;
     private final CouponRepository couponRepository;
     private final MemberCouponRepository memberCouponRepository;
-    private final StringRedisTemplate stringRedisTemplate;
     private final RedisTemplate<Object, Object> redisTemplate;
 
     @Override
@@ -159,7 +157,7 @@ public class CouponServiceImpl implements CouponService {
         Coupon coupon = couponRepository.findById(couponId).orElseThrow(() -> new CouponServerException(ErrorCode.COUPON_NOT_FOUND));
 
         try {
-            CouponState newStatus = CouponState.valueOf(status.toUpperCase());
+            CouponStatus newStatus = CouponStatus.valueOf(status.toUpperCase());
             coupon.updateStatus(newStatus);
         } catch (IllegalArgumentException e) {
             throw new CouponServerException(ErrorCode.INVALID_INPUT_VALUE);

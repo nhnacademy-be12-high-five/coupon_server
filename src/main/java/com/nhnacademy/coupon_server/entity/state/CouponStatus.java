@@ -1,6 +1,6 @@
 package com.nhnacademy.coupon_server.entity.state;
 
-public enum CouponState {
+public enum CouponStatus {
     ACTIVE,
     INACTIVE
 }

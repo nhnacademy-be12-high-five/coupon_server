@@ -1,18 +1,19 @@
 package com.nhnacademy.coupon_server.service;
 
-import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
+import com.nhnacademy.coupon_server.exception.CouponServerException;
+import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyRepository;
 import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.impl.CouponServiceImpl;
-import com.nhnacademy.coupon_server.service.impl.MemberCouponServiceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,13 +21,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,27 +47,28 @@ class CouponServiceTest {
     @Mock
     private MemberCouponRepository memberCouponRepository;
     @Mock
-    private StringRedisTemplate redisTemplate;
-    @Mock
     private RedisTemplate<Object, Object> objectRedisTemplate;
 
+    // [추가] Redis 연산을 위한 Mock 객체
+    @Mock
+    private ValueOperations<Object, Object> valueOperations;
 
     private CouponServiceImpl couponService;
 
     @BeforeEach
     void setUp() {
         couponService = new CouponServiceImpl(
-                couponPolicyRepository,  // 1. CouponPolicyRepository (순서 변경됨)
-                couponRepository,        // 2. CouponRepository
-                memberCouponRepository,  // 3. MemberCouponRepository
-                redisTemplate,           // 4. StringRedisTemplate (추가)
-                objectRedisTemplate      // 5. RedisTemplate<Object, Object> (추가)
+                couponPolicyRepository,
+                couponRepository,
+                memberCouponRepository,
+                objectRedisTemplate
         );
     }
 
     @Test
-    @DisplayName("쿠폰 템플릿 생성 성공")
+    @DisplayName("쿠폰 템플릿 생성 성공 - Redis 저장 로직 포함")
     void createCouponSuccess() {
+        // Given
         Long policyId = 1L;
         CouponPolicy mockPolicy = CouponPolicy.builder()
                 .id(policyId)
@@ -87,17 +89,29 @@ class CouponServiceTest {
                 .id(100L)
                 .couponPolicy(mockPolicy)
                 .couponName(requestDto.getCouponName())
+                .issueCount(100) // Redis 저장을 위해 수량 설정
+                .issuedEndAt(requestDto.getIssueEndAt()) // 만료 시간 설정을 위해 종료일 설정
                 .build();
 
         when(couponPolicyRepository.findById(policyId)).thenReturn(Optional.of(mockPolicy));
         when(couponRepository.save(any(Coupon.class))).thenReturn(mockCoupon);
 
+        // [추가] Redis Mocking (NPE 방지 핵심)
+        when(objectRedisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        // When
         CouponResponseDto responseDto = couponService.create(requestDto);
 
+        // Then
         Assertions.assertNotNull(responseDto);
         assertEquals(100L, responseDto.getId());
         assertEquals("Summer Sale", responseDto.getCouponName());
         assertEquals(policyId, responseDto.getCouponPolicyId());
+
+        // [추가] Redis에 수량이 저장되었는지 검증
+        verify(valueOperations).set(eq("coupon:count:100"), eq("100"));
+        // 만료 시간 설정 검증
+        verify(objectRedisTemplate).expireAt(eq("coupon:count:100"), any(java.util.Date.class));
     }
 
     @Test
@@ -185,19 +199,19 @@ class CouponServiceTest {
         // Given
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. [ACTIVE] 정상 발급 가능 (기간 내, 수량 넉넉)
+        // 1. [ACTIVE] 정상 발급 가능
         Coupon activeCoupon = createMockCoupon(1L, "정상 쿠폰", CouponPolicyStatus.ACTIVE,
                 now.minusDays(1), now.plusDays(1), 100);
 
-        // 2. [WAITING] 발급 대기 (시작일이 미래)
+        // 2. [WAITING] 발급 대기
         Coupon waitingCoupon = createMockCoupon(2L, "대기 쿠폰", CouponPolicyStatus.ACTIVE,
                 now.plusDays(1), now.plusDays(7), 100);
 
-        // 3. [EXPIRED] 기간 만료 (종료일이 과거)
+        // 3. [EXPIRED] 기간 만료
         Coupon expiredCoupon = createMockCoupon(3L, "만료 쿠폰", CouponPolicyStatus.ACTIVE,
                 now.minusDays(10), now.minusDays(1), 100);
 
-        // 4. [SOLD_OUT] 소진 (수량 10개 설정, 10개 모두 발급되었다고 가정)
+        // 4. [SOLD_OUT] 소진
         Coupon soldOutCoupon = createMockCoupon(4L, "소진 쿠폰", CouponPolicyStatus.ACTIVE,
                 now.minusDays(1), now.plusDays(1), 10);
 
@@ -208,14 +222,9 @@ class CouponServiceTest {
         List<Coupon> couponList = List.of(activeCoupon, waitingCoupon, expiredCoupon, soldOutCoupon, inactiveCoupon);
         Page<Coupon> couponPage = new PageImpl<>(couponList);
 
-        // Mocking 1: 쿠폰 목록 조회
         when(couponRepository.findAll(any(Pageable.class))).thenReturn(couponPage);
 
-        // Mocking 2: [수정됨] MemberCouponRepository를 통해 발급 수량 조회
-        // 소진된 쿠폰(ID 4)은 10장이 발행되었는데, 10장이 발급되었다고 설정 (잔여 = 10 - 10 = 0)
         when(memberCouponRepository.countByCouponId(4L)).thenReturn(10L);
-
-        // 나머지 쿠폰은 0장이 발급되었다고 설정 (잔여 100)
         when(memberCouponRepository.countByCouponId(argThat(id -> id != 4L))).thenReturn(0L);
 
         // When
@@ -224,17 +233,11 @@ class CouponServiceTest {
         // Then
         List<CouponResponseDto> content = result.getContent();
 
-        // 상태값 검증
-        // 1. ACTIVE
-        assertEquals("ACTIVE", content.get(0).getStatus(), "정상 쿠폰은 ACTIVE 여야 합니다.");
-        // 2. WAITING
-        assertEquals("WAITING", content.get(1).getStatus(), "시작 전 쿠폰은 WAITING 여야 합니다.");
-        // 3. EXPIRED
-        assertEquals("EXPIRED", content.get(2).getStatus(), "종료된 쿠폰은 EXPIRED 여야 합니다.");
-        // 4. SOLD_OUT (발행량 10 - 발급량 10 = 잔여 0)
-        assertEquals("SOLD_OUT", content.get(3).getStatus(), "수량이 소진된 쿠폰은 SOLD_OUT 여야 합니다.");
-        // 5. INACTIVE
-        assertEquals("INACTIVE", content.get(4).getStatus(), "정책이 비활성인 쿠폰은 INACTIVE 여야 합니다.");
+        assertEquals("ACTIVE", content.get(0).getStatus());
+        assertEquals("WAITING", content.get(1).getStatus());
+        assertEquals("EXPIRED", content.get(2).getStatus());
+        assertEquals("SOLD_OUT", content.get(3).getStatus());
+        assertEquals("INACTIVE", content.get(4).getStatus());
     }
 
     private Coupon createMockCoupon(Long id, String name, CouponPolicyStatus policyStatus,
@@ -255,7 +258,7 @@ class CouponServiceTest {
     }
 
     @Test
-    @DisplayName("전체 쿠폰 조회 시 잔여 수량 계산 로직 검증 (정상, 초과, 무제한)")
+    @DisplayName("전체 쿠폰 조회 시 잔여 수량 계산 로직 검증")
     void findAll_RemainingCountCalculation() {
         Coupon normalCoupon = Coupon.builder()
                 .id(1L)
@@ -281,7 +284,6 @@ class CouponServiceTest {
         when(couponRepository.findAll()).thenReturn(List.of(normalCoupon, overIssuedCoupon, unlimitedCoupon));
 
         when(memberCouponRepository.countByCouponId(1L)).thenReturn(30L);
-
         when(memberCouponRepository.countByCouponId(2L)).thenReturn(120L);
 
         List<CouponResponseDto> result = couponService.findAll();
@@ -296,5 +298,59 @@ class CouponServiceTest {
 
         CouponResponseDto unlimitedDto = result.stream().filter(c -> c.getId().equals(3L)).findFirst().get();
         Assertions.assertNull(unlimitedDto.getRemainingCount());
+    }
+
+    @Test
+    @DisplayName("쿠폰 상태 변경 성공 (ACTIVE -> INACTIVE)")
+    void updateCouponStatus_Success() {
+        Long couponId = 1L;
+        String newStatus = "INACTIVE";
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .status(CouponStatus.ACTIVE)
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        couponService.updateCouponStatus(couponId, newStatus);
+
+        Assertions.assertEquals(CouponStatus.INACTIVE, coupon.getStatus());
+        verify(couponRepository, times(1)).findById(couponId);
+    }
+
+    @Test
+    @DisplayName("쿠폰 상태 변경 실패 - 존재하지 않는 쿠폰")
+    void updateCouponStatus_Fail_NotFound() {
+        Long couponId = 999L;
+        String newStatus = "INACTIVE";
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.empty());
+
+        CouponServerException exception = Assertions.assertThrows(CouponServerException.class, () -> {
+            couponService.updateCouponStatus(couponId, newStatus);
+        });
+
+        Assertions.assertEquals(ErrorCode.COUPON_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("쿠폰 상태 변경 실패 - 잘못된 상태 값 입력")
+    void updateCouponStatus_Fail_InvalidStatus() {
+        Long couponId = 1L;
+        String invalidStatus = "WRONG_STATUS";
+
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .status(CouponStatus.ACTIVE)
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        CouponServerException exception = Assertions.assertThrows(CouponServerException.class, () -> {
+            couponService.updateCouponStatus(couponId, invalidStatus);
+        });
+
+        Assertions.assertEquals(ErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
     }
 }

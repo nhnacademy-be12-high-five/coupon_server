@@ -184,7 +184,8 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(99L);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(99L);
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
         when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
 
@@ -194,6 +195,7 @@ public class MemberCouponServiceTest {
         Assertions.assertThrows(DuplicateCouponException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
+        verify(valueOperations, times(1)).increment("coupon:count:" + couponId);
     }
 
     @Test
@@ -221,11 +223,13 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(memberCouponRepository.countByCouponId(couponId)).thenReturn(100L); // 이미 100개 다 나감
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(-1L);
 
         Assertions.assertThrows(IllegalStateException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
+        verify(valueOperations).increment("coupon:count:" + couponId);
     }
 
     // ==========================================

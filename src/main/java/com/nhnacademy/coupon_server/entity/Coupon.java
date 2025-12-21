@@ -1,6 +1,6 @@
 package com.nhnacademy.coupon_server.entity;
 
-import com.nhnacademy.coupon_server.entity.state.CouponState;
+import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -50,16 +50,16 @@ public class Coupon {
     @Column(name = "valid_end_at")
     private LocalDateTime validEndAt;
 
-    @Column(name = "state", nullable = false)
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private CouponState state = CouponState.ACTIVE;
+    private CouponStatus status = CouponStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "coupon_policy_id", nullable = false)
     private CouponPolicy couponPolicy;
 
-    public void updateStatus(CouponState newStatus) {
-        this.state = newStatus;
+    public void updateStatus(CouponStatus newStatus) {
+        this.status = newStatus;
     }
 }
