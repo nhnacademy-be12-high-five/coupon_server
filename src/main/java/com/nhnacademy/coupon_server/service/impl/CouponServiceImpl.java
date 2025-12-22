@@ -90,8 +90,8 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public Page<CouponResponseDto> findIssuableCoupons(Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
-        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(
-                now, now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
+        Page<Coupon> coupons = couponRepository.findIssuableCoupons(
+                now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
         );
         List<CouponResponseDto> filteredList = coupons.stream()
                 .map(coupon -> {

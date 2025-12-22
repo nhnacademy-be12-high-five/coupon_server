@@ -175,7 +175,7 @@ class CouponServiceTest {
         List<Coupon> coupons = List.of(limitedCoupon, unlimitedCoupon);
         Page<Coupon> couponPage = new PageImpl<>(coupons);
 
-        when(couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(any(), any(), eq(CouponPolicyStatus.ACTIVE), eq(CouponType.NORMAL), eq(pageable))).thenReturn(couponPage);
+        when(couponRepository.findIssuableCoupons(any(), eq(CouponPolicyStatus.ACTIVE), eq(CouponType.NORMAL), eq(pageable))).thenReturn(couponPage);
 
         when(memberCouponRepository.countByCouponId(1L)).thenReturn(10L);
         Page<CouponResponseDto> result = couponService.findIssuableCoupons(pageable);

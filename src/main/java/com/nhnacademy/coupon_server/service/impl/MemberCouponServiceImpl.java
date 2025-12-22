@@ -19,6 +19,7 @@ import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponReposito
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +27,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +45,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     private final CouponRepository couponRepository;
     private final CouponDateCalculator dateCalculator;
     private final RedisTemplate<String, String> redisTemplate;
+    private final RedisScript<Long> issueScript = issueCouponScript();
 
     @Override
     public Page<MemberCouponResponseDto> findAll(Pageable pageable) {
@@ -95,29 +100,23 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         validateCouponIssuance(coupon);
 
-        String countKey = "coupon:count:" + couponId;
         if (coupon.getIssueCount() != null) {
-            try {
-                Long remainingCount = redisTemplate.opsForValue().decrement(countKey);
+            String countKey = "coupon:count:" + couponId;
+            String issuedUsersKey = "coupon:issued:" + couponId + ":users";
 
-                if (remainingCount != null && remainingCount < 0) {
-                    redisTemplate.opsForValue().increment(countKey);
-                    throw new IllegalStateException("수량이 모두 매진되었습니다.");
-                }
-            } catch (RedisConnectionFailureException | RedisSystemException e) {
-                log.error("Redis 장애 발생으로 쿠폰 발급 중단 - Coupon: {}, User: {}, Error: {}", couponId, userId, e.getMessage());
-                throw new IllegalStateException("시스템 오류로 인해 쿠폰 발급을 진행할 수 없습니다.");
+            // 2. Lua Script 실행 (원자적 처리)
+            Long result = redisTemplate.execute(issueScript,
+                    List.of(countKey, issuedUsersKey),
+                    String.valueOf(userId));
+
+            if (result == null || result == 0) {
+                throw new IllegalStateException("쿠폰이 모두 소진되었습니다.");
+            }
+            if (result == -1) {
+                throw new DuplicateCouponException();
             }
         }
-
-        try {
-            validateDuplicateAndSave(userId, coupon);
-        } catch (Exception e) {
-            if (coupon.getIssueCount() != null) {
-                redisTemplate.opsForValue().increment(countKey);
-            }
-            throw e;
-        }
+        saveMemberCoupon(userId, coupon);
     }
 
     @Override
@@ -131,11 +130,8 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 .stream().map(MemberCouponResponseDto::fromEntity).toList();
     }
 
-    // [수정됨] 쿠폰 할인 계산
     @Override
     public CouponCalculationResponseDto calculateDiscount(Long userId, CouponCalculationRequestDto requestDto) {
-        // requestDto.getCouponId()는 MemberCoupon의 ID (PK)입니다.
-        // 1. 발급된 쿠폰 ID(PK)로 조회
         MemberCoupon memberCoupon = findAndValidateOwner(requestDto.getCouponId(), userId);
 
         memberCoupon.validateUsable();
@@ -225,7 +221,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         log.info("생일 쿠폰 발급 요청 - User: {}, Coupon: {}", memberId, couponId);
 
         Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new CouponNotFoundException());
+                .orElseThrow(CouponNotFoundException::new);
 
         if (memberCouponRepository.existsByUserIdAndCouponId(memberId, couponId)) {
             log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", memberId);
@@ -257,5 +253,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         }
 
         saveMemberCoupon(memberId, welcomeCoupon);
+    }
+
+    private RedisScript<Long> issueCouponScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/issue-coupon.lua")));
+        script.setResultType(Long.class);
+        return script;
     }
 }

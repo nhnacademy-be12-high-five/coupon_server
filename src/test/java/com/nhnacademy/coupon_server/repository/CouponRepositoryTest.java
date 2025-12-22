@@ -83,7 +83,7 @@ class CouponRepositoryTest {
 
         Pageable pageable = PageRequest.of(0, 10);
 
-        Page<Coupon> result = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(now, now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable);
+        Page<Coupon> result = couponRepository.findIssuableCoupons(now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getCouponName()).isEqualTo("발급 가능 쿠폰");

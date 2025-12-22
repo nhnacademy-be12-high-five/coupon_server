@@ -14,15 +14,30 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
-    Page<Coupon> findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(
-            LocalDateTime now1,
-            LocalDateTime now2,
-            CouponPolicyStatus status,
-            CouponType couponType,
+    @Query("SELECT c FROM Coupon c " +
+            "JOIN FETCH c.couponPolicy cp " +
+            "WHERE c.issuedStartAt <= :now " +
+            "AND c.issuedEndAt >= :now " +
+            "AND cp.status = :status " +
+            "AND c.couponType = :couponType")
+    Page<Coupon> findIssuableCoupons(
+            @Param("now") LocalDateTime now,
+            @Param("status") CouponPolicyStatus status,
+            @Param("couponType") CouponType couponType,
             Pageable pageable
     );
 
-    List<Coupon> findByCouponPolicyComment(Comment comment);
+    @Override
+    @Query("SELECT c FROM Coupon c JOIN FETCH c.couponPolicy")
+    List<Coupon> findAll();
+
+    @Override
+    @Query(value = "SELECT c FROM Coupon c JOIN FETCH c.couponPolicy",
+            countQuery = "SELECT COUNT(c) FROM Coupon c")
+    Page<Coupon> findAll(Pageable pageable);
+
+    @Query("SELECT c FROM Coupon c JOIN FETCH c.couponPolicy WHERE c.couponPolicy.comment = :comment")
+    List<Coupon> findByCouponPolicyComment(@Param("comment") Comment comment);
 
     @Query("SELECT c FROM Coupon c " +
             "JOIN FETCH c.couponPolicy cp " +
