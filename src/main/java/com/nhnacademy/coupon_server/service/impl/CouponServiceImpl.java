@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -85,6 +87,29 @@ public class CouponServiceImpl implements CouponService {
                     return CouponResponseDto.fromEntity(coupon, remainingCount);
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CouponResponseDto> findAll(Pageable pageable){
+        Page<Coupon> couponPage = couponRepository.findAll(pageable);
+        if (couponPage.isEmpty()){
+            return Page.empty(pageable);
+        }
+        List<Long> couponIds = couponPage.getContent().stream()
+                .map(Coupon::getId)
+                .toList();
+
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+        return couponPage.map(coupon ->
+                CouponResponseDto.fromEntity(
+                        coupon,
+                        issuedCountMap.getOrDefault(coupon.getId(), 0L)
+                ));
     }
 
     @Override

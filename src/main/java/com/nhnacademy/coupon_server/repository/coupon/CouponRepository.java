@@ -14,12 +14,18 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface CouponRepository extends JpaRepository<Coupon, Long> {
-    @Query("SELECT c FROM Coupon c " +
+    @Query(value = "SELECT c FROM Coupon c " +
             "JOIN FETCH c.couponPolicy cp " +
             "WHERE c.issuedStartAt <= :now " +
             "AND c.issuedEndAt >= :now " +
             "AND cp.status = :status " +
-            "AND c.couponType = :couponType")
+            "AND c.couponType = :couponType",
+            countQuery = "SELECT COUNT(c) FROM Coupon c " +
+                    "JOIN c.couponPolicy cp " +
+                    "WHERE c.issuedStartAt <= :now " +
+                    "AND c.issuedEndAt >= :now " +
+                    "AND cp.status = :status " +
+                    "AND c.couponType = :couponType")
     Page<Coupon> findIssuableCoupons(
             @Param("now") LocalDateTime now,
             @Param("status") CouponPolicyStatus status,
