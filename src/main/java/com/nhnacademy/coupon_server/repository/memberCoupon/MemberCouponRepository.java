@@ -31,7 +31,7 @@ public interface MemberCouponRepository extends JpaRepository<MemberCoupon, Long
 
     List<MemberCoupon> findAllByCouponCouponPolicyIdAndStatus(Long policyId, Status status);
 
-    @Query("SELECT mc.coupon.id, COUNT(mc) " +
+    @Query("SELECT mc.coupon.id AS couponId, COUNT(mc) AS count " +
             "FROM MemberCoupon mc " +
             "WHERE mc.coupon.id IN :couponIds " +
             "GROUP BY mc.coupon.id")
