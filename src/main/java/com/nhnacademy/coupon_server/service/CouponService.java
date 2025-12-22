@@ -16,13 +16,10 @@ public interface CouponService {
     // 쿠폰 템플릿 목록 조회
     List<CouponResponseDto> findAll();
 
+    Page<CouponResponseDto> findAll(Pageable pageable);
+
     //발급 가능한 쿠폰 목록 조회
     Page<CouponResponseDto> findIssuableCoupons(Pageable pageable);
-
-    /**
-     * 쿠폰 목록 조회 (페이징, 상태 계산 포함)
-     */
-    Page<CouponResponseDto> getCoupons(Pageable pageable);
 
     List<CouponResponseDto> findCouponsByBookId(Long bookId);
 

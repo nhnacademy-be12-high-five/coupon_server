@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service.impl;
 
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
@@ -26,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -74,55 +77,96 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public List<CouponResponseDto> findAll() {
         log.info("모든 쿠폰 템플릿 조회 요청");
+        List<Coupon> coupons = couponRepository.findAll();
 
-        return couponRepository.findAll().stream()
-                .map(coupon -> {
-                    Integer remainingCount = null;
-                    if (coupon.getIssueCount() != null) {
-                        long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
-                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issuedCount);
-                    }
-                    return CouponResponseDto.fromEntity(coupon, remainingCount);
-                })
+        if (coupons.isEmpty()) {
+            return List.of();
+        }
+        List<Long> couponIds = coupons.stream().map(Coupon::getId).toList();
+
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+                .collect(Collectors.toMap(
+                        CouponCountDto::getCouponId,
+                        CouponCountDto::getCount
+                ));
+
+        return coupons.stream()
+                .map(coupon -> CouponResponseDto.fromEntity(
+                        coupon,
+                        issuedCountMap.getOrDefault(coupon.getId(), 0L)
+                ))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CouponResponseDto> findAll(Pageable pageable){
+        Page<Coupon> couponPage = couponRepository.findAll(pageable);
+        if (couponPage.isEmpty()){
+            return Page.empty(pageable);
+        }
+        List<Long> couponIds = couponPage.getContent().stream()
+                .map(Coupon::getId)
+                .toList();
+
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+                .collect(Collectors.toMap(
+                        CouponCountDto::getCouponId,
+                        CouponCountDto::getCount
+                ));
+        return couponPage.map(coupon ->
+                CouponResponseDto.fromEntity(
+                        coupon,
+                        issuedCountMap.getOrDefault(coupon.getId(), 0L)
+                ));
     }
 
     @Override
     public Page<CouponResponseDto> findIssuableCoupons(Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
-        Page<Coupon> coupons = couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(
-                now, now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
+        Page<Coupon> coupons = couponRepository.findIssuableCoupons(
+                now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
         );
-        List<CouponResponseDto> filteredList = coupons.stream()
-                .map(coupon -> {
-                    Integer remainingCount = null;
-                    if (coupon.getIssueCount() != null) {
-                        long issueCount = memberCouponRepository.countByCouponId(coupon.getId());
-                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issueCount);
-                    }
-                    return CouponResponseDto.fromEntity(coupon, remainingCount);
-                })
-                .filter(dto -> dto.getRemainingCount() == null || dto.getRemainingCount() > 0)
+
+        if (coupons.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Long> couponIds = coupons.getContent().stream()
+                .map(Coupon::getId)
                 .toList();
 
-        return new PageImpl<>(filteredList, pageable, filteredList.size());
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+                .collect(Collectors.toMap(
+                        CouponCountDto::getCouponId,
+                        CouponCountDto::getCount
+                ));
+
+        List<CouponResponseDto> dtoList = coupons.stream()
+                .map(coupon -> CouponResponseDto.fromEntity(
+                        coupon,
+                        issuedCountMap.getOrDefault(coupon.getId(), 0L) // issuedCount 전달
+                ))
+                .toList();
+
+        return new PageImpl<>(dtoList, pageable, coupons.getTotalElements());
     }
 
-    @Override
-    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
-        Page<Coupon> coupons = couponRepository.findAll(pageable);
-
-        return coupons.map(coupon -> {
-            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
-
-            Integer remainingCount = null;
-            if (coupon.getIssueCount() != null) {
-                remainingCount = coupon.getIssueCount() - (int) issuedCount;
-            }
-
-            return CouponResponseDto.fromEntity(coupon, remainingCount);
-        });
-    }
+//    @Override
+//    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
+//        Page<Coupon> coupons = couponRepository.findAll(pageable);
+//
+//        return coupons.map(coupon -> {
+//            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+//
+//            Integer remainingCount = null;
+//            if (coupon.getIssueCount() != null) {
+//                remainingCount = coupon.getIssueCount() - (int) issuedCount;
+//            }
+//
+//            return CouponResponseDto.fromEntity(coupon, remainingCount);
+//        });
+//    }
 
     @Override
     public List<CouponResponseDto> findCouponsByBookId(Long bookId) {

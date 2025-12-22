@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service;
 
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
@@ -175,9 +176,16 @@ class CouponServiceTest {
         List<Coupon> coupons = List.of(limitedCoupon, unlimitedCoupon);
         Page<Coupon> couponPage = new PageImpl<>(coupons);
 
-        when(couponRepository.findAllByIssuedStartAtBeforeAndIssuedEndAtAfterAndCouponPolicyStatusAndCouponType(any(), any(), eq(CouponPolicyStatus.ACTIVE), eq(CouponType.NORMAL), eq(pageable))).thenReturn(couponPage);
+        when(couponRepository.findIssuableCoupons(any(), eq(CouponPolicyStatus.ACTIVE), eq(CouponType.NORMAL), eq(pageable)))
+                .thenReturn(couponPage);
 
-        when(memberCouponRepository.countByCouponId(1L)).thenReturn(10L);
+        CouponCountDto countDto = mock(CouponCountDto.class);
+        when(countDto.getCouponId()).thenReturn(1L); // 1번 쿠폰
+        when(countDto.getCount()).thenReturn(10L);
+
+        when(memberCouponRepository.countByCouponIdIn(anyList()))
+                .thenReturn(List.of(countDto));
+
         Page<CouponResponseDto> result = couponService.findIssuableCoupons(pageable);
 
         List<CouponResponseDto> responseDtoList = result.getContent();
@@ -221,13 +229,14 @@ class CouponServiceTest {
 
         when(couponRepository.findAll(any(Pageable.class))).thenReturn(couponPage);
 
-        when(memberCouponRepository.countByCouponId(4L)).thenReturn(10L);
-        when(memberCouponRepository.countByCouponId(argThat(id -> id != 4L))).thenReturn(0L);
+        CouponCountDto countDto = mock(CouponCountDto.class);
+        when(countDto.getCouponId()).thenReturn(4L);
+        when(countDto.getCount()).thenReturn(10L);
 
-        // When
-        Page<CouponResponseDto> result = couponService.getCoupons(PageRequest.of(0, 10));
+        when(memberCouponRepository.countByCouponIdIn(anyList())).thenReturn(List.of(countDto));
 
-        // Then
+        Page<CouponResponseDto> result = couponService.findAll(PageRequest.of(0, 10));
+
         List<CouponResponseDto> content = result.getContent();
 
         assertEquals("ACTIVE", content.get(0).getStatus());
@@ -280,8 +289,16 @@ class CouponServiceTest {
 
         when(couponRepository.findAll()).thenReturn(List.of(normalCoupon, overIssuedCoupon, unlimitedCoupon));
 
-        when(memberCouponRepository.countByCouponId(1L)).thenReturn(30L);
-        when(memberCouponRepository.countByCouponId(2L)).thenReturn(120L);
+        CouponCountDto countDto1 = mock(CouponCountDto.class);
+        when(countDto1.getCouponId()).thenReturn(1L);
+        when(countDto1.getCount()).thenReturn(30L);
+
+        CouponCountDto countDto2 = mock(CouponCountDto.class);
+        when(countDto2.getCouponId()).thenReturn(2L);
+        when(countDto2.getCount()).thenReturn(120L);
+
+        when(memberCouponRepository.countByCouponIdIn(anyList()))
+                .thenReturn(List.of(countDto1, countDto2));
 
         List<CouponResponseDto> result = couponService.findAll();
 

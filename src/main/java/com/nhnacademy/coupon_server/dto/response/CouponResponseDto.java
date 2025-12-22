@@ -26,20 +26,26 @@ public class CouponResponseDto {
     private String policyStatus;
 
     public static CouponResponseDto fromEntity(Coupon coupon) {
-        return fromEntity(coupon, null);
+        return fromEntity(coupon, 0L);
     }
 
-    public static CouponResponseDto fromEntity(Coupon coupon, Integer remainingCount) {
-        String status;
+    public static CouponResponseDto fromEntity(Coupon coupon, long currentIssuedCount) {
         LocalDateTime now = LocalDateTime.now();
+        Integer totalCount = coupon.getIssueCount();
+        Integer remaining = null;
 
+        if (totalCount != null) {
+            remaining = (int) Math.max(0, totalCount - currentIssuedCount);
+        }
+
+        String status;
         if (coupon.getStatus() == CouponStatus.INACTIVE || coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
             status = "INACTIVE";
         } else if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
             status = "WAITING";
         } else if (coupon.getIssuedEndAt() != null && now.isAfter(coupon.getIssuedEndAt())) {
             status = "EXPIRED";
-        } else if (remainingCount != null && remainingCount <= 0) {
+        } else if (remaining != null && remaining <= 0) {
             status = "SOLD_OUT";
         } else {
             status = "ACTIVE";
@@ -49,12 +55,12 @@ public class CouponResponseDto {
                 .couponPolicyId(coupon.getCouponPolicy().getId())
                 .couponName(coupon.getCouponName())
                 .description(coupon.getDescription())
-                .issueCount(coupon.getIssueCount())
+                .issueCount(totalCount)
                 .issueStartAt(coupon.getIssuedStartAt())
                 .issueEndAt(coupon.getIssuedEndAt())
                 .validPeriodDate(coupon.getValidPeriodDate())
                 .validEndAt(coupon.getValidEndAt())
-                .remainingCount(remainingCount)
+                .remainingCount(remaining)
                 .couponType(coupon.getCouponType().toString())
                 .status(status)
                 .policyStatus(coupon.getCouponPolicy().getStatus().name())

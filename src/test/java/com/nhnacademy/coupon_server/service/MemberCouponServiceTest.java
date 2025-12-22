@@ -37,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -60,10 +61,6 @@ public class MemberCouponServiceTest {
 
     @Mock
     private RedisTemplate<String, String> redisTemplate;
-
-    @Mock
-    private ValueOperations<String, String> valueOperations;
-
 
     private MemberCouponServiceImpl memberCouponService;
     private final GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
@@ -134,7 +131,7 @@ public class MemberCouponServiceTest {
     // [변경] Redis/RabbitMQ 제거 -> DB 직접 저장 검증
     // ==========================================
     @Test
-    @DisplayName("사용자 발급 성공")
+    @DisplayName("사용자 발급 성공 - Lua Script 실행 결과 1 반환")
     void issueCouponByUser_Success() {
         Long userId = 1L;
         Long couponId = 100L;
@@ -149,47 +146,43 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(99L);
-
-        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false); // 중복 아님
         when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
+
+        // [핵심 변경] Redis Lua Script 실행 Mocking
+        // execute(script, keys, args) 호출 시 1L(성공)을 반환하도록 설정
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString()))
+                .thenReturn(1L);
 
         memberCouponService.issueCouponByUser(userId, couponId);
 
-        // RabbitMQ가 아니라 DB save가 호출되어야 함
+        // DB 저장이 호출되었는지 검증
         verify(memberCouponRepository, times(1)).save(any(MemberCoupon.class));
-        verify(valueOperations, never()).increment(anyString());
     }
 
     @Test
-    @DisplayName("사용자 발급 실패 - 동시성 제약조건 위반 (DataIntegrityViolationException)")
-    void issueCouponByUser_Failure_Concurrency() {
+    @DisplayName("사용자 발급 실패 - 이미 발급된 유저 (Redis Lua Script 반환값 -1)")
+    void issueCouponByUser_Failure_Duplicate_Redis() {
         Long userId = 1L;
         Long couponId = 100L;
-        LocalDateTime expectedDate = LocalDateTime.now().plusDays(7);
 
         Coupon coupon = Coupon.builder()
                 .id(couponId)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
                 .issueCount(100)
+                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
                 .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(99L);
-        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
-        when(dateCalculator.calculateExpiration(coupon)).thenReturn(expectedDate);
 
-        // save 시점에 동시성 예외 발생 시뮬레이션
-        doThrow(DataIntegrityViolationException.class).when(memberCouponRepository).save(any(MemberCoupon.class));
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString()))
+                .thenReturn(-1L);
 
         Assertions.assertThrows(DuplicateCouponException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
-        verify(valueOperations, times(1)).increment("coupon:count:" + couponId);
+
+        verify(memberCouponRepository, never()).save(any());
     }
 
     @Test
@@ -203,7 +196,7 @@ public class MemberCouponServiceTest {
     }
 
     @Test
-    @DisplayName("사용자 발급 실패 - 수량 매진")
+    @DisplayName("사용자 발급 실패 - 수량 매진 (Redis Lua Script 반환값 0)")
     void issueCouponByUser_Fail_SoldOut() {
         Long userId = 1L;
         Long couponId = 10L;
@@ -217,13 +210,14 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.decrement("coupon:count:" + couponId)).thenReturn(-1L);
+
+        // [핵심 변경] Lua Script가 0(매진) 또는 null 반환
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString()))
+                .thenReturn(0L);
 
         Assertions.assertThrows(IllegalStateException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
-        verify(valueOperations).increment("coupon:count:" + couponId);
     }
 
     @Test
@@ -240,18 +234,13 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-        when(valueOperations.decrement("coupon:count:" + couponId))
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString()))
                 .thenThrow(new RedisConnectionFailureException("Redis Connection Failed"));
 
-        IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class, () ->
+        Assertions.assertThrows(RedisConnectionFailureException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
-
-        Assertions.assertEquals("시스템 오류로 인해 쿠폰 발급을 진행할 수 없습니다.", exception.getMessage());
-
-        verify(memberCouponRepository, never()).save(any());
     }
 
     // ==========================================
