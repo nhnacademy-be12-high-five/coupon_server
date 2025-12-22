@@ -1,7 +1,8 @@
 package com.nhnacademy.coupon_server.exception;
 
-public class DuplicateCouponException extends RuntimeException {
-    public DuplicateCouponException(String message) {
-        super(message);
+public class DuplicateCouponException extends CouponServerException {
+
+    public DuplicateCouponException() {
+        super(ErrorCode.DUPLICATE_COUPON_ISSUE);
     }
 }

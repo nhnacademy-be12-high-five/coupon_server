@@ -1,13 +1,13 @@
 package com.nhnacademy.coupon_server.controller;
 
 import com.nhnacademy.coupon_server.controller.apidocs.MemberCouponDocs;
-import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
-import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
-import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.dto.request.CouponCalculationRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponCancelRequestDto;
 import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.request.UserCouponIssueRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
+import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
+import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.service.CouponService;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import jakarta.validation.Valid;
@@ -16,15 +16,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/coupons")
+@RequestMapping("/api/coupons") // [수정 1] 경로를 api/coupons -> api/member-coupons 로 변경
 @RequiredArgsConstructor
 public class MemberCouponController implements MemberCouponDocs {
 
@@ -32,30 +29,35 @@ public class MemberCouponController implements MemberCouponDocs {
     private final CouponService couponService;
 
     @Override
-    public ResponseEntity<Void> issueCoupon(@RequestHeader("X-USER-ID") Long memberId, UserCouponIssueRequestDto requestDto) {
+    @PostMapping("/issue") // [수정 2] 어노테이션 명시적 추가 (이하 동일)
+    public ResponseEntity<Void> issueCoupon(@RequestHeader("X-USER-ID") Long memberId, @RequestBody UserCouponIssueRequestDto requestDto) {
         memberCouponService.issueCouponByUser(memberId, requestDto.getCouponId());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Override
+    @GetMapping("/members")
     public ResponseEntity<Page<MemberCouponResponseDto>> getCouponsByUserId(@RequestHeader("X-USER-ID") Long memberId, Pageable pageable) {
         Page<MemberCouponResponseDto> responseDtos = memberCouponService.findCouponByUserId(memberId, pageable);
         return ResponseEntity.ok(responseDtos);
     }
 
     @Override
+    @GetMapping("/templates")
     public ResponseEntity<Page<CouponResponseDto>> getIssuableCoupons(Pageable pageable) {
         Page<CouponResponseDto> responseDtos = couponService.findIssuableCoupons(pageable);
         return ResponseEntity.ok(responseDtos);
     }
 
     @Override
+    @GetMapping("/members/order")
     public ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(@RequestHeader("X-USER-ID") Long memberId) {
         List<MemberCouponResponseDto> responseDtos = memberCouponService.findUsableCoupons(memberId);
         return ResponseEntity.ok(responseDtos);
     }
 
     @Override
+    @PostMapping("/calculate")
     public ResponseEntity<CouponCalculationResponseDto> calculateCoupon(@RequestHeader("X-USER-ID") Long memberId,
                                                                         @Valid @RequestBody CouponCalculationRequestDto requestDto) {
         CouponCalculationResponseDto responseDto = memberCouponService.calculateDiscount(memberId, requestDto);
@@ -63,13 +65,15 @@ public class MemberCouponController implements MemberCouponDocs {
     }
 
     @Override
-    public ResponseEntity<Void> useCoupon(@RequestHeader("X-USER-ID") Long memberId, MemberCouponUseRequestDto requestDto) {
+    @PostMapping("/use")
+    public ResponseEntity<Void> useCoupon(@RequestHeader("X-USER-ID") Long memberId, @RequestBody MemberCouponUseRequestDto requestDto) {
         memberCouponService.useCoupon(memberId, requestDto);
         return ResponseEntity.ok().build();
     }
 
     @Override
-    public ResponseEntity<Void> cancelCouponUsage(@RequestHeader("X-USER-ID") Long memberId, MemberCouponCancelRequestDto requestDto) {
+    @PostMapping("/cancel")
+    public ResponseEntity<Void> cancelCouponUsage(@RequestHeader("X-USER-ID") Long memberId, @RequestBody MemberCouponCancelRequestDto requestDto) {
         memberCouponService.cancelCouponUsage(memberId, requestDto);
         return ResponseEntity.ok().build();
     }

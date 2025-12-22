@@ -85,7 +85,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public CouponPolicyResponseDto findById(Long id) {
         log.info("쿠폰 정책 단건 조회 요청 - ID -> {}", id);
         CouponPolicy policy = couponPolicyRepository.findById(id)
-                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CouponPolicyNotFoundException());
         return CouponPolicyResponseDto.fromEntity(policy);
     }
 
@@ -94,7 +94,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public void deleteById(Long id) {
         log.info("쿠폰 정책 삭제 요청 - ID -> {}", id);
         CouponPolicy policy = couponPolicyRepository.findById(id)
-                .orElseThrow(() -> new CouponPolicyNotFoundException("쿠폰 정책을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CouponPolicyNotFoundException());
 
         policy.disable();
         List<MemberCoupon> issuedCoupons = memberCouponRepository.findAllByCouponCouponPolicyIdAndStatus(id, Status.ISSUED);
