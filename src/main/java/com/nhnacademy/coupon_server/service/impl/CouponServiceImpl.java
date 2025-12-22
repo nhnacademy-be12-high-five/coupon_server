@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.service.impl;
 
 import com.nhnacademy.coupon_server.dto.request.CouponRequestDto;
+import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
@@ -76,16 +77,24 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public List<CouponResponseDto> findAll() {
         log.info("모든 쿠폰 템플릿 조회 요청");
+        List<Coupon> coupons = couponRepository.findAll();
 
-        return couponRepository.findAll().stream()
-                .map(coupon -> {
-                    Integer remainingCount = null;
-                    if (coupon.getIssueCount() != null) {
-                        long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
-                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issuedCount);
-                    }
-                    return CouponResponseDto.fromEntity(coupon, remainingCount);
-                })
+        if (coupons.isEmpty()) {
+            return List.of();
+        }
+        List<Long> couponIds = coupons.stream().map(Coupon::getId).toList();
+
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+                .collect(Collectors.toMap(
+                        CouponCountDto::getCouponId,
+                        CouponCountDto::getCount
+                ));
+
+        return coupons.stream()
+                .map(coupon -> CouponResponseDto.fromEntity(
+                        coupon,
+                        issuedCountMap.getOrDefault(coupon.getId(), 0L)
+                ))
                 .toList();
     }
 
@@ -102,8 +111,8 @@ public class CouponServiceImpl implements CouponService {
 
         Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
                 .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Long) row[1]
+                        CouponCountDto::getCouponId,
+                        CouponCountDto::getCount
                 ));
         return couponPage.map(coupon ->
                 CouponResponseDto.fromEntity(
@@ -118,36 +127,47 @@ public class CouponServiceImpl implements CouponService {
         Page<Coupon> coupons = couponRepository.findIssuableCoupons(
                 now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
         );
+
+        if (coupons.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Long> couponIds = coupons.getContent().stream()
+                .map(Coupon::getId)
+                .toList();
+
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+                .collect(Collectors.toMap(
+                        CouponCountDto::getCouponId,
+                        CouponCountDto::getCount
+                ));
+
         List<CouponResponseDto> filteredList = coupons.stream()
-                .map(coupon -> {
-                    Integer remainingCount = null;
-                    if (coupon.getIssueCount() != null) {
-                        long issueCount = memberCouponRepository.countByCouponId(coupon.getId());
-                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issueCount);
-                    }
-                    return CouponResponseDto.fromEntity(coupon, remainingCount);
-                })
+                .map(coupon -> CouponResponseDto.fromEntity(
+                        coupon,
+                        issuedCountMap.getOrDefault(coupon.getId(), 0L) // issuedCount 전달
+                ))
                 .filter(dto -> dto.getRemainingCount() == null || dto.getRemainingCount() > 0)
                 .toList();
 
         return new PageImpl<>(filteredList, pageable, filteredList.size());
     }
 
-    @Override
-    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
-        Page<Coupon> coupons = couponRepository.findAll(pageable);
-
-        return coupons.map(coupon -> {
-            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
-
-            Integer remainingCount = null;
-            if (coupon.getIssueCount() != null) {
-                remainingCount = coupon.getIssueCount() - (int) issuedCount;
-            }
-
-            return CouponResponseDto.fromEntity(coupon, remainingCount);
-        });
-    }
+//    @Override
+//    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
+//        Page<Coupon> coupons = couponRepository.findAll(pageable);
+//
+//        return coupons.map(coupon -> {
+//            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
+//
+//            Integer remainingCount = null;
+//            if (coupon.getIssueCount() != null) {
+//                remainingCount = coupon.getIssueCount() - (int) issuedCount;
+//            }
+//
+//            return CouponResponseDto.fromEntity(coupon, remainingCount);
+//        });
+//    }
 
     @Override
     public List<CouponResponseDto> findCouponsByBookId(Long bookId) {
