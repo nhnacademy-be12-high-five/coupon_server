@@ -142,15 +142,14 @@ public class CouponServiceImpl implements CouponService {
                         CouponCountDto::getCount
                 ));
 
-        List<CouponResponseDto> filteredList = coupons.stream()
+        List<CouponResponseDto> dtoList = coupons.stream()
                 .map(coupon -> CouponResponseDto.fromEntity(
                         coupon,
                         issuedCountMap.getOrDefault(coupon.getId(), 0L) // issuedCount 전달
                 ))
-                .filter(dto -> dto.getRemainingCount() == null || dto.getRemainingCount() > 0)
                 .toList();
 
-        return new PageImpl<>(filteredList, pageable, filteredList.size());
+        return new PageImpl<>(dtoList, pageable, coupons.getTotalElements());
     }
 
 //    @Override
