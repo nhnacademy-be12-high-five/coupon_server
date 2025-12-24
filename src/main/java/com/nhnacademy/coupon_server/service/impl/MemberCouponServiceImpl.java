@@ -154,9 +154,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     @Override
     @Transactional
     public void useCoupon(Long userId, MemberCouponUseRequestDto requestDto) {
+        log.info("[5. 쿠폰 사용 서비스 시작] UserID: {}, CouponID: {}", userId, requestDto.getCouponId());
        MemberCoupon memberCoupon = findAndValidateOwner(requestDto.getCouponId(), userId);
 
         memberCoupon.use(requestDto.getOrderId());
+        log.info("[6. 쿠폰 상태 변경 완료] MemberCouponID: {}, 변경된 상태: {}, OrderID: {}",
+                memberCoupon.getId(), memberCoupon.getStatus(), requestDto.getOrderId());
     }
 
     // [수정됨] 쿠폰 사용 취소
