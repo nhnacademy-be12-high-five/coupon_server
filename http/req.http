@@ -189,6 +189,14 @@ Content-Type: application/json
   "couponType": "NORMAL"
 }
 
+###
+POST http://localhost:9004/api/coupons/admin/coupons/6/change-status
+Content-Type: application/json
+
+{ "status": "INACTIVE" }
 
 ###
-POST http://localhost:9002/api/search/reindex
+POST http://localhost:9004/api/coupons/admin/coupons/6/change-status
+Content-Type: application/json
+
+{ "status": "ACTIVE" }

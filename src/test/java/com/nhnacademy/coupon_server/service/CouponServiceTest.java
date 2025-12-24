@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.LocalDateTime;
@@ -47,10 +48,10 @@ class CouponServiceTest {
     @Mock
     private MemberCouponRepository memberCouponRepository;
     @Mock
-    private RedisTemplate<Object, Object> redisTemplate;
+    private StringRedisTemplate redisTemplate;
 
     @Mock
-    private ValueOperations<Object, Object> valueOperations;
+    private ValueOperations<String, String> valueOperations;
 
     private CouponServiceImpl couponService;
 
