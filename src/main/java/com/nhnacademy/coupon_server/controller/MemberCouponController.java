@@ -12,6 +12,7 @@ import com.nhnacademy.coupon_server.service.CouponService;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/coupons") // [수정 1] 경로를 api/coupons -> api/member-coupons 로 변경
 @RequiredArgsConstructor
@@ -67,6 +69,8 @@ public class MemberCouponController implements MemberCouponDocs {
     @Override
     @PostMapping("/use")
     public ResponseEntity<Void> useCoupon(@RequestHeader("X-USER-ID") Long memberId, @RequestBody MemberCouponUseRequestDto requestDto) {
+        log.info("============== [4. 쿠폰 서버 요청 수신] UserID: {}, CouponID: {}, OrderID: {} ==============",
+                memberId, requestDto.getCouponId(), requestDto.getOrderId());
         memberCouponService.useCoupon(memberId, requestDto);
         return ResponseEntity.ok().build();
     }
