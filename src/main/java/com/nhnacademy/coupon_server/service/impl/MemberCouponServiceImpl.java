@@ -27,6 +27,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
@@ -44,7 +45,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     private final MemberCouponRepository memberCouponRepository;
     private final CouponRepository couponRepository;
     private final CouponDateCalculator dateCalculator;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final RedisScript<Long> issueScript = issueCouponScript();
 
     @Override
@@ -154,9 +155,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     @Override
     @Transactional
     public void useCoupon(Long userId, MemberCouponUseRequestDto requestDto) {
+        log.info("[5. 쿠폰 사용 서비스 시작] UserID: {}, CouponID: {}", userId, requestDto.getCouponId());
        MemberCoupon memberCoupon = findAndValidateOwner(requestDto.getCouponId(), userId);
 
         memberCoupon.use(requestDto.getOrderId());
+        log.info("[6. 쿠폰 상태 변경 완료] MemberCouponID: {}, 변경된 상태: {}, OrderID: {}",
+                memberCoupon.getId(), memberCoupon.getStatus(), requestDto.getOrderId());
     }
 
     // [수정됨] 쿠폰 사용 취소

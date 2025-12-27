@@ -6,6 +6,7 @@ import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
@@ -35,13 +36,23 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     public CouponPolicyResponseDto create(CouponPolicyRequestDto couponPolicyRequestDto) {
         log.info("새로 만든 쿠폰 정책 -> {}", couponPolicyRequestDto.getName());
 
+        Long maxDiscountValue = couponPolicyRequestDto.getMaxDiscountValue();
+
+        if (maxDiscountValue == null || maxDiscountValue == 0) {
+            if (couponPolicyRequestDto.getDiscountType() == DiscountType.FIXED) {
+                maxDiscountValue = couponPolicyRequestDto.getDiscountValue();
+            } else if (couponPolicyRequestDto.getDiscountType() == DiscountType.PERCENTAGE) {
+                maxDiscountValue = null;
+            }
+        }
+
         CouponPolicy newPolicy = CouponPolicy.builder()
                 .name(couponPolicyRequestDto.getName())
                 .comment(couponPolicyRequestDto.getComment())
                 .discountType(couponPolicyRequestDto.getDiscountType())
                 .discountValue(couponPolicyRequestDto.getDiscountValue())
                 .minOrderValue(couponPolicyRequestDto.getMinOrderValue())
-                .maxDiscountValue(couponPolicyRequestDto.getMaxDiscountValue())
+                .maxDiscountValue(maxDiscountValue)
                 .build();
 
         CouponPolicy savedPolicy = couponPolicyRepository.save(newPolicy);
