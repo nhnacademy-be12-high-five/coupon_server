@@ -24,6 +24,7 @@ public interface MemberCouponRepository extends JpaRepository<MemberCoupon, Long
     // 특정 사용자의 쿠폰 목록 조회 (페이징)
     Page<MemberCoupon> findByUserId(Long userId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"coupon", "coupon.couponPolicy", "coupon.couponPolicy.usableBooks", "coupon.couponPolicy.usableCategories"})
     List<MemberCoupon> findAllByUserIdAndStatusAndExpiredAtAfter(Long userId, Status status, LocalDateTime now);
 
     @EntityGraph(attributePaths = {"coupon", "coupon.couponPolicy"})

@@ -53,8 +53,9 @@ public class MemberCouponController implements MemberCouponDocs {
 
     @Override
     @GetMapping("/members/order")
-    public ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(@RequestHeader("X-USER-ID") Long memberId) {
-        List<MemberCouponResponseDto> responseDtos = memberCouponService.findUsableCoupons(memberId);
+    public ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(@RequestHeader("X-USER-ID") Long memberId,
+                                                                          @RequestParam(value = "bookIds", required = false) List<Long> bookIds) {
+        List<MemberCouponResponseDto> responseDtos = memberCouponService.findUsableCoupons(memberId, bookIds);
         return ResponseEntity.ok(responseDtos);
     }
 

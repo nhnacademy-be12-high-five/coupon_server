@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -185,13 +186,14 @@ class MemberCouponControllerTest {
     @DisplayName("주문 시 적용 가능 쿠폰 조회 성공")
     void getUsableCouponsSuccess() throws Exception {
         Long userId = 1L;
+        List<Long> bookIds = new ArrayList<>();
 
         MemberCouponResponseDto responseDto = MemberCouponResponseDto.builder()
                 .couponName("주문 할인 쿠폰")
                 .status(Status.ISSUED)
                 .build();
 
-        when(memberCouponService.findUsableCoupons(userId)).thenReturn(List.of(responseDto));
+        when(memberCouponService.findUsableCoupons(eq(userId), any())).thenReturn(List.of(responseDto));
 
         mockMvc.perform(get("/api/coupons/members/order")
                 .header("X-USER-ID", userId)

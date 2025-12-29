@@ -8,6 +8,7 @@ import com.nhnacademy.coupon_server.dto.request.MemberCouponUseRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponCalculationResponseDto;
 import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
+import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
@@ -24,9 +25,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -126,9 +124,34 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     }
 
     @Override
-    public List<MemberCouponResponseDto> findUsableCoupons(Long userId) {
-        return memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, LocalDateTime.now())
-                .stream().map(MemberCouponResponseDto::fromEntity).toList();
+    public List<MemberCouponResponseDto> findUsableCoupons(Long userId, List<Long> bookIds) {
+        List<MemberCoupon> allCoupons = memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, LocalDateTime.now());
+        if (bookIds == null || bookIds.isEmpty()) {
+            return allCoupons.stream()
+                    .map(MemberCouponResponseDto::fromEntity)
+                    .toList();
+        }
+        return allCoupons.stream()
+                .filter(memberCoupon -> isApplicableToBooks(memberCoupon.getCoupon(), bookIds))
+                .map(MemberCouponResponseDto::fromEntity)
+                .toList();
+    }
+
+    private boolean isApplicableToBooks(Coupon coupon, List<Long> bookIds) {
+        CouponPolicy policy = coupon.getCouponPolicy();
+        boolean hasBookConstraint = !policy.getUsableBooks().isEmpty();
+        boolean hasCategoryConstraint = !policy.getUsableCategories().isEmpty();
+
+        if (hasBookConstraint) {
+            boolean match = policy.getUsableBooks().stream()
+                    .anyMatch(policyBook -> bookIds.contains(policyBook.getBookId()));
+            if (match) return true;
+        }
+
+        if (!hasCategoryConstraint && !hasBookConstraint) {
+            return true;
+        }
+        return false;
     }
 
     @Override
