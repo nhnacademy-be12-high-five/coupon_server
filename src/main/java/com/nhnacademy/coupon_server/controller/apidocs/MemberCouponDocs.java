@@ -19,10 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -65,7 +62,8 @@ public interface MemberCouponDocs {
     @GetMapping("/members/order")
     ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(
             @Parameter(name = "memberId", description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
-            @RequestHeader("X-USER-ID") Long memberId
+            @RequestHeader("X-USER-ID") Long memberId,
+            @RequestParam("bookIds") List<Long> bookIds
     );
 
     @Operation(summary = "쿠폰 할인 금액 계산", description = "주문 금액에 대해 특정 쿠폰을 적용했을 때의 할인 금액을 계산하고 유효성을 검증합니다.")
