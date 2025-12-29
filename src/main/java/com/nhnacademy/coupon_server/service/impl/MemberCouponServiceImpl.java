@@ -148,7 +148,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
             if (match) return true;
         }
 
-        if (hasCategoryConstraint && !hasBookConstraint) {
+        if (!hasCategoryConstraint && !hasBookConstraint) {
             return true;
         }
         return false;
