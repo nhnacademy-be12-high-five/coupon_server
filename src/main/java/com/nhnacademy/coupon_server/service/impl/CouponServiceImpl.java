@@ -243,4 +243,24 @@ public class CouponServiceImpl implements CouponService {
             log.info("재발행 쿠폰 Redis 재고 복구 완료 - CouponId: {}, Count: {}", coupon.getId(), remainingCount);
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CouponResponseDto> getCouponsForProduct(Long bookId, List<Long> categoryIds) {
+        // categoryIds가 null이거나 비어있을 경우 쿼리 오류 방지를 위해 빈 리스트 처리 (또는 더미 값)
+        if (categoryIds == null) {
+            categoryIds = List.of();
+        }
+
+        List<Coupon> coupons = couponRepository.findCouponsForProduct(
+                bookId,
+                categoryIds,
+                CouponPolicyStatus.ACTIVE, // 활성화된 정책만
+                LocalDateTime.now()
+        );
+
+        return coupons.stream()
+                .map(CouponResponseDto::fromEntity)
+                .toList();
+    }
 }
