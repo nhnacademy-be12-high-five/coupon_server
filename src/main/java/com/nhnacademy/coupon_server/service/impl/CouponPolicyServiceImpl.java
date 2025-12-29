@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -65,7 +66,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                             .build())
                     .toList();
             couponPolicyBookRepository.saveAll(bookLinks);
-            savedPolicy.setUsableBooks(bookLinks);
+            savedPolicy.setUsableBooks(new HashSet<>(bookLinks));
         }
         // 카테고리 적용 범위 저장 로직
         if (couponPolicyRequestDto.getTargetCategoryIds() != null && !couponPolicyRequestDto.getTargetCategoryIds().isEmpty()) {
@@ -76,7 +77,7 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
                             .build())
                     .toList();
             couponPolicyCategoryRepository.saveAll(categoryLinks);
-            savedPolicy.setUsableCategories(categoryLinks);
+            savedPolicy.setUsableCategories(new HashSet<>(categoryLinks));
         }
         return CouponPolicyResponseDto.fromEntity(savedPolicy);
     }

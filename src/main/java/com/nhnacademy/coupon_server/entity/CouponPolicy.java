@@ -8,7 +8,9 @@ import lombok.*;
 
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "coupon_policy")
@@ -57,12 +59,12 @@ public class CouponPolicy {
     @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter
     @Builder.Default
-    private List<CouponPolicyBook> usableBooks = new ArrayList<>();
+    private Set<CouponPolicyBook> usableBooks = new HashSet<>();
 
     @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter
     @Builder.Default
-    private List<CouponPolicyCategory> usableCategories = new ArrayList<>();
+    private Set<CouponPolicyCategory> usableCategories = new HashSet<>();
 
     public void disable() {
         this.status = CouponPolicyStatus.INACTIVE;
