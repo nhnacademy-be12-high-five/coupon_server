@@ -193,7 +193,7 @@ class MemberCouponControllerTest {
                 .status(Status.ISSUED)
                 .build();
 
-        when(memberCouponService.findUsableCoupons(userId, bookIds)).thenReturn(List.of(responseDto));
+        when(memberCouponService.findUsableCoupons(eq(userId), any())).thenReturn(List.of(responseDto));
 
         mockMvc.perform(get("/api/coupons/members/order")
                 .header("X-USER-ID", userId)
