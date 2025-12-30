@@ -32,7 +32,6 @@ public class CouponRequestDto {
     @NotNull(message = "발행 시작 일수는 필수입니다.")
     private LocalDateTime issueStartAt;
 
-    @NotNull(message = "발행 종료 일시는 필수입니다.")
     @Future(message = "발행 종료 일시는 미래여야 합니다.")
     private LocalDateTime issueEndAt;
 
