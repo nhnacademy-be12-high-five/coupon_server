@@ -26,4 +26,6 @@ public interface CouponService {
     void updateCouponStatus(Long couponId, CouponStatus status);
 
     List<CouponResponseDto> getCouponsForProduct(Long bookId, List<Long> categoryIds);
+
+    List<CouponResponseDto> getBookSpecificCoupons(Long bookId, List<Long> categoryIds);
 }
