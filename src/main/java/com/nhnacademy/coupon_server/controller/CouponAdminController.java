@@ -39,7 +39,7 @@ public class CouponAdminController implements CouponAdminDocs {
     }
 
     @Override
-    public ResponseEntity<Void> updateCouponStatus(@PathVariable Long couponId,
+    public ResponseEntity<Void> updateCouponStatus(@PathVariable("couponId") Long couponId,
                                                    @Valid @RequestBody CouponStatusRequestDto requestDto) {
         couponService.updateCouponStatus(couponId, requestDto.getStatus());
         return ResponseEntity.ok().build();
