@@ -36,7 +36,7 @@ jobs:
 
       is-multi-instance: true
 
-      maven-args: "-B -DskipTests"
+      maven-args: "-B"
       deploy-enabled: true
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
