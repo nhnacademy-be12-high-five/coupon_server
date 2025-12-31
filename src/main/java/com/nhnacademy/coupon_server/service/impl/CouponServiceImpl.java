@@ -26,8 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -212,8 +211,15 @@ public class CouponServiceImpl implements CouponService {
             // 2. 상태 변경
             coupon.updateStatus(newStatus);
 
-            // 3. 재발행(INACTIVE -> ACTIVE) 시 Redis 재고 동기화 로직
-            if (oldStatus == CouponStatus.INACTIVE && newStatus == CouponStatus.ACTIVE) {
+            String redisKey = "coupon:count:" + couponId;
+
+            if (newStatus == CouponStatus.INACTIVE || newStatus == CouponStatus.EXPIRED) {
+                // 비활성화/만료 시 Redis에서 즉시 제거하여 발급 중단
+                redisTemplate.delete(redisKey);
+                log.info("쿠폰 발급 중단 처리 (Redis Key 삭제) - CouponId: {}", couponId);
+
+            } else if (oldStatus == CouponStatus.INACTIVE && newStatus == CouponStatus.ACTIVE) {
+                // 재활성화 시 재고 복구
                 restoreRedisStock(coupon);
             }
 
@@ -247,14 +253,11 @@ public class CouponServiceImpl implements CouponService {
     @Override
     @Transactional(readOnly = true)
     public List<CouponResponseDto> getCouponsForProduct(Long bookId, List<Long> categoryIds) {
-        // categoryIds가 null이거나 비어있을 경우 쿼리 오류 방지를 위해 빈 리스트 처리 (또는 더미 값)
-        if (categoryIds == null) {
-            categoryIds = List.of();
-        }
+        List<Long> safeCategoryIds = getSafeCategoryIds(categoryIds);
 
         List<Coupon> coupons = couponRepository.findCouponsForProduct(
                 bookId,
-                categoryIds,
+                safeCategoryIds,
                 CouponPolicyStatus.ACTIVE, // 활성화된 정책만
                 LocalDateTime.now()
         );
@@ -262,5 +265,32 @@ public class CouponServiceImpl implements CouponService {
         return coupons.stream()
                 .map(CouponResponseDto::fromEntity)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CouponResponseDto> getBookSpecificCoupons(Long bookId, List<Long> categoryIds) {
+        List<Long> safeCategoryIds = getSafeCategoryIds(categoryIds);
+
+        List<Coupon> coupons = couponRepository.findSpecificCouponsForProduct(
+                bookId,
+                safeCategoryIds,
+                CouponPolicyStatus.ACTIVE,
+                LocalDateTime.now()
+        );
+        return coupons.stream()
+                .map(coupon -> {
+                    String countKey = "coupon:count:" + coupon.getId();
+                    Object countObj = redisTemplate.opsForValue().get(countKey);
+                    return CouponResponseDto.fromEntity(coupon);
+                })
+                .collect(Collectors.toList());
+    }
+
+    private List<Long> getSafeCategoryIds(List<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return List.of(-1L); // 존재하지 않는 ID (-1)을 넣어 쿼리 문법 오류 방지
+        }
+        return categoryIds;
     }
 }

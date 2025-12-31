@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -27,6 +28,8 @@ public interface CouponDocs {
     @GetMapping("/books/{book-id}")
     ResponseEntity<List<CouponResponseDto>> getBookCoupons(
             @Parameter(name = "book-id", description = "도서 ID", required = true, in = ParameterIn.PATH, example = "1")
-            @PathVariable("book-id") Long bookId
+            @PathVariable("book-id") Long bookId,
+            @RequestParam(name = "categoryIds", required = false) List<Long> categoryIds,
+            @RequestParam(name = "include-global", required = false, defaultValue = "true") boolean includeGlobal
     );
 }
