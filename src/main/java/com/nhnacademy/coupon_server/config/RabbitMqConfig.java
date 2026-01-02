@@ -24,7 +24,7 @@ public class RabbitMqConfig {
     public static final String COUPON_DEAD_LETTER_ROUTING_KEY = "high-five.dead.letter";
 
     @Bean
-    public Queue WelcomeCouponQueue() {
+    public Queue welcomeCouponQueue() {
         Map<String, Object> args = new HashMap<>();
         args.put("x-dead-letter-exchange", COUPON_DEAD_LETTER_EXCHANGE);
         args.put("x-dead-letter-routing-key", COUPON_DEAD_LETTER_ROUTING_KEY);
