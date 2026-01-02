@@ -124,7 +124,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     }
 
     @Override
-    public List<MemberCouponResponseDto> findUsableCoupons(Long userId, List<Long> bookIds) {
+    public List<MemberCouponResponseDto> findUsableCoupons(Long userId, List<Long> bookIds, List<Long> categoryIds) {
         List<MemberCoupon> allCoupons = memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, LocalDateTime.now());
         if (bookIds == null || bookIds.isEmpty()) {
             return allCoupons.stream()
@@ -132,12 +132,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                     .toList();
         }
         return allCoupons.stream()
-                .filter(memberCoupon -> isApplicableToBooks(memberCoupon.getCoupon(), bookIds))
+                .filter(memberCoupon -> isApplicableToBooks(memberCoupon.getCoupon(), bookIds, categoryIds))
                 .map(MemberCouponResponseDto::fromEntity)
                 .toList();
     }
 
-    private boolean isApplicableToBooks(Coupon coupon, List<Long> bookIds) {
+    private boolean isApplicableToBooks(Coupon coupon, List<Long> bookIds, List<Long> categoryIds) {
         CouponPolicy policy = coupon.getCouponPolicy();
         boolean hasBookConstraint = !policy.getUsableBooks().isEmpty();
         boolean hasCategoryConstraint = !policy.getUsableCategories().isEmpty();
@@ -145,6 +145,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         if (hasBookConstraint) {
             boolean match = policy.getUsableBooks().stream()
                     .anyMatch(policyBook -> bookIds.contains(policyBook.getBookId()));
+            if (match) return true;
+        }
+
+        if (hasCategoryConstraint && categoryIds != null && !categoryIds.isEmpty()) {
+            boolean match = policy.getUsableCategories().stream()
+                    .anyMatch(policyCategory -> categoryIds.contains(policyCategory.getCategoryId()));
             if (match) return true;
         }
 

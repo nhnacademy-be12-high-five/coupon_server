@@ -20,7 +20,7 @@ public interface MemberCouponService {
 
     Page<MemberCouponResponseDto> findCouponByUserId(Long userId, Pageable pageable);
 
-    List<MemberCouponResponseDto> findUsableCoupons(Long userId, List<Long> bookIds);
+    List<MemberCouponResponseDto> findUsableCoupons(Long userId, List<Long> bookIds, List<Long> categoryIds);
 
     CouponCalculationResponseDto calculateDiscount(Long userId, CouponCalculationRequestDto requestDto);
 

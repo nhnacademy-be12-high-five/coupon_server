@@ -63,7 +63,8 @@ public interface MemberCouponDocs {
     ResponseEntity<List<MemberCouponResponseDto>> getUsableCoupons(
             @Parameter(name = "memberId", description = "회원 ID (X-USER-ID 헤더)", required = true, in = ParameterIn.HEADER, example = "1")
             @RequestHeader("X-USER-ID") Long memberId,
-            @RequestParam(value = "bookIds", required = false) List<Long> bookIds
+            @RequestParam(value = "bookIds", required = false) List<Long> bookIds,
+            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds
     );
 
     @Operation(summary = "쿠폰 할인 금액 계산", description = "주문 금액에 대해 특정 쿠폰을 적용했을 때의 할인 금액을 계산하고 유효성을 검증합니다.")
