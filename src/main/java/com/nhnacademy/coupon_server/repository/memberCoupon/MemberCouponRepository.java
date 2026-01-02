@@ -14,28 +14,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface MemberCouponRepository extends JpaRepository<MemberCoupon, Long> {
+public interface MemberCouponRepository extends JpaRepository<MemberCoupon, Long>, MemberCouponRepositoryCustom {
     // 중복 발급 확인
     boolean existsByUserIdAndCouponId(Long userId, Long couponId);
 
     // 해당 쿠폰이 현재까지 몇개 발급되었는지 카운트
     long countByCouponId(Long couponId);
 
-    // 특정 사용자의 쿠폰 목록 조회 (페이징)
-    Page<MemberCoupon> findByUserId(Long userId, Pageable pageable);
-
-    @EntityGraph(attributePaths = {"coupon", "coupon.couponPolicy", "coupon.couponPolicy.usableBooks", "coupon.couponPolicy.usableCategories"})
-    List<MemberCoupon> findAllByUserIdAndStatusAndExpiredAtAfter(Long userId, Status status, LocalDateTime now);
-
     @EntityGraph(attributePaths = {"coupon", "coupon.couponPolicy"})
     Optional<MemberCoupon> findByUserIdAndCouponId(Long userId, Long couponId);
 
     List<MemberCoupon> findAllByCouponCouponPolicyIdAndStatus(Long policyId, Status status);
-
-    @Query("SELECT mc.coupon.id AS couponId, COUNT(mc) AS count " +
-            "FROM MemberCoupon mc " +
-            "WHERE mc.coupon.id IN :couponIds " +
-            "GROUP BY mc.coupon.id")
-    List<CouponCountDto> countByCouponIdIn(@Param("couponIds") List<Long> couponIds);
 
 }

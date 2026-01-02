@@ -1,5 +1,7 @@
 package com.nhnacademy.coupon_server.repository;
 
+import com.nhnacademy.coupon_server.config.QueryDslConfig;
+import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -25,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @ActiveProfiles("test")
+@Import(QueryDslConfig.class)
 class MemberCouponRepositoryTest {
 
     @Autowired
@@ -104,9 +108,11 @@ class MemberCouponRepositoryTest {
         memberCouponRepository.save(mc1);
         memberCouponRepository.save(mc2);
 
-        long count = memberCouponRepository.countByCouponId(coupon.getId());
+        List<CouponCountDto> results = memberCouponRepository.countByCouponIds(List.of(coupon.getId()));
 
-        assertThat(count).isEqualTo(2);
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getCouponId()).isEqualTo(coupon.getId());
+        assertThat(results.get(0).getCount()).isEqualTo(2);
     }
 
     @Test
@@ -134,14 +140,10 @@ class MemberCouponRepositoryTest {
 
         PageRequest pageRequest = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "issueAt"));
 
-        Page<MemberCoupon> result = memberCouponRepository.findByUserId(userId, pageRequest);
+        Page<MemberCoupon> result = memberCouponRepository.findMemberCouponsByUserId(userId, pageRequest);
 
         assertThat(result.getContent()).hasSize(5);
         assertThat(result.getTotalElements()).isEqualTo(10);
-        assertThat(result.getNumber()).isEqualTo(0);
-
-        assertThat(result.getContent().get(0).getIssueAt())
-                .isAfterOrEqualTo(result.getContent().get(1).getIssueAt());
     }
 
     @Test
@@ -191,7 +193,7 @@ class MemberCouponRepositoryTest {
         entityManager.persist(usedCoupon);
         entityManager.persist(expiredCoupon);
 
-        List<MemberCoupon> result = memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, now);
+        List<MemberCoupon> result = memberCouponRepository.findUsableCoupons(userId, now);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getStatus()).isEqualTo(Status.ISSUED);

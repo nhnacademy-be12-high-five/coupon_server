@@ -120,12 +120,13 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
     @Override
     public Page<MemberCouponResponseDto> findCouponByUserId(Long userId, Pageable pageable) {
-        return memberCouponRepository.findByUserId(userId, pageable).map(MemberCouponResponseDto::fromEntity);
+        return memberCouponRepository.findMemberCouponsByUserId(userId, pageable)
+                .map(MemberCouponResponseDto::fromEntity);
     }
 
     @Override
     public List<MemberCouponResponseDto> findUsableCoupons(Long userId, List<Long> bookIds, List<Long> categoryIds) {
-        List<MemberCoupon> allCoupons = memberCouponRepository.findAllByUserIdAndStatusAndExpiredAtAfter(userId, Status.ISSUED, LocalDateTime.now());
+        List<MemberCoupon> allCoupons = memberCouponRepository.findUsableCoupons(userId, LocalDateTime.now());
         if (bookIds == null || bookIds.isEmpty()) {
             return allCoupons.stream()
                     .map(MemberCouponResponseDto::fromEntity)
