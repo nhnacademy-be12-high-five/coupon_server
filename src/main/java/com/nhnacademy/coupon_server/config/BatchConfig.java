@@ -13,6 +13,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.net.SocketTimeoutException;
@@ -41,6 +42,12 @@ public class BatchConfig {
     public Step birthdayCouponStep(JobRepository jobRepository,
                                    PlatformTransactionManager transactionManager,
                                    BirthdayMemberItemReader birthdayMemberItemReader) {
+
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setInitialInterval(1000L); // 최초 1초 대기
+        backOffPolicy.setMultiplier(2.0);        // 2배씩 증가
+        backOffPolicy.setMaxInterval(10000L);    // 최대 10초까지 대기
+
         return new StepBuilder("birthdayCouponStep", jobRepository)
                 .<Long,Long>chunk(CHUNK_SIZE, transactionManager)
                 .reader(birthdayMemberItemReader)
@@ -49,6 +56,7 @@ public class BatchConfig {
                 .retryLimit(3)
                 .retry(FeignException.class)
                 .retry(SocketTimeoutException.class)
+                .backOffPolicy(backOffPolicy)
                 .build();
     }
 }

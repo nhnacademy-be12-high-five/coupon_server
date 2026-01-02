@@ -4,10 +4,15 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +56,23 @@ public class RabbitMqConfig {
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
+    }
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jsonMessageConverter());
+
+        // 재시도 인터셉터 설정
+        RetryOperationsInterceptor retryInterceptor = RetryInterceptorBuilder.stateless()
+                .maxAttempts(3) // 최대 3번 시도 (초기 1회 + 재시도 2회)
+                .backOffOptions(1000, 2.0, 10000) // 1초 대기, 2배씩 증가, 최대 10초
+                .recoverer(new RejectAndDontRequeueRecoverer()) // 재시도 실패 시 예외 던짐 -> DLQ 설정에 의해 DLQ로 이동
+                .build();
+
+        factory.setAdviceChain(retryInterceptor);
+        return factory;
     }
 
 }
