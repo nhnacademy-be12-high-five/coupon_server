@@ -183,7 +183,7 @@ class CouponServiceTest {
         when(countDto.getCouponId()).thenReturn(1L); // 1번 쿠폰
         when(countDto.getCount()).thenReturn(10L);
 
-        when(memberCouponRepository.countByCouponIdIn(anyList()))
+        when(memberCouponRepository.countByCouponIds(anyList()))
                 .thenReturn(List.of(countDto));
 
         Page<CouponResponseDto> result = couponService.findIssuableCoupons(pageable);
@@ -233,7 +233,7 @@ class CouponServiceTest {
         when(countDto.getCouponId()).thenReturn(4L);
         when(countDto.getCount()).thenReturn(10L);
 
-        when(memberCouponRepository.countByCouponIdIn(anyList())).thenReturn(List.of(countDto));
+        when(memberCouponRepository.countByCouponIds(anyList())).thenReturn(List.of(countDto));
 
         Page<CouponResponseDto> result = couponService.findAll(PageRequest.of(0, 10));
 
@@ -297,7 +297,7 @@ class CouponServiceTest {
         when(countDto2.getCouponId()).thenReturn(2L);
         when(countDto2.getCount()).thenReturn(120L);
 
-        when(memberCouponRepository.countByCouponIdIn(anyList()))
+        when(memberCouponRepository.countByCouponIds(anyList()))
                 .thenReturn(List.of(countDto1, countDto2));
 
         List<CouponResponseDto> result = couponService.findAll();

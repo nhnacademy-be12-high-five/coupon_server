@@ -83,7 +83,7 @@ public class CouponServiceImpl implements CouponService {
         }
         List<Long> couponIds = coupons.stream().map(Coupon::getId).toList();
 
-        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIds(couponIds).stream()
                 .collect(Collectors.toMap(
                         CouponCountDto::getCouponId,
                         CouponCountDto::getCount
@@ -108,7 +108,7 @@ public class CouponServiceImpl implements CouponService {
                 .map(Coupon::getId)
                 .toList();
 
-        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIds(couponIds).stream()
                 .collect(Collectors.toMap(
                         CouponCountDto::getCouponId,
                         CouponCountDto::getCount
@@ -135,7 +135,7 @@ public class CouponServiceImpl implements CouponService {
                 .map(Coupon::getId)
                 .toList();
 
-        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIdIn(couponIds).stream()
+        Map<Long, Long> issuedCountMap = memberCouponRepository.countByCouponIds(couponIds).stream()
                 .collect(Collectors.toMap(
                         CouponCountDto::getCouponId,
                         CouponCountDto::getCount
@@ -253,11 +253,9 @@ public class CouponServiceImpl implements CouponService {
     @Override
     @Transactional(readOnly = true)
     public List<CouponResponseDto> getCouponsForProduct(Long bookId, List<Long> categoryIds) {
-        List<Long> safeCategoryIds = getSafeCategoryIds(categoryIds);
-
         List<Coupon> coupons = couponRepository.findCouponsForProduct(
                 bookId,
-                safeCategoryIds,
+                categoryIds,
                 CouponPolicyStatus.ACTIVE, // 활성화된 정책만
                 LocalDateTime.now()
         );
@@ -270,11 +268,9 @@ public class CouponServiceImpl implements CouponService {
     @Override
     @Transactional(readOnly = true)
     public List<CouponResponseDto> getBookSpecificCoupons(Long bookId, List<Long> categoryIds) {
-        List<Long> safeCategoryIds = getSafeCategoryIds(categoryIds);
-
         List<Coupon> coupons = couponRepository.findSpecificCouponsForProduct(
                 bookId,
-                safeCategoryIds,
+                categoryIds,
                 CouponPolicyStatus.ACTIVE,
                 LocalDateTime.now()
         );
@@ -285,12 +281,5 @@ public class CouponServiceImpl implements CouponService {
                     return CouponResponseDto.fromEntity(coupon);
                 })
                 .collect(Collectors.toList());
-    }
-
-    private List<Long> getSafeCategoryIds(List<Long> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return List.of(-1L); // 존재하지 않는 ID (-1)을 넣어 쿼리 문법 오류 방지
-        }
-        return categoryIds;
     }
 }
