@@ -7,6 +7,7 @@ import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepositoryCustom;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,13 @@ import static com.nhnacademy.coupon_server.entity.QCouponPolicy.couponPolicy;
 import static com.nhnacademy.coupon_server.entity.QCouponPolicyBook.couponPolicyBook;
 import static com.nhnacademy.coupon_server.entity.QCouponPolicyCategory.couponPolicyCategory;
 
-@RequiredArgsConstructor
 public class CouponRepositoryImpl implements CouponRepositoryCustom {
 
     private final JPAQueryFactory jpaQueryFactory;
+
+    public CouponRepositoryImpl(JPAQueryFactory jpaQueryFactory) {
+        this.jpaQueryFactory = jpaQueryFactory;
+    }
 
     @Override
     public Page<Coupon> findIssuableCoupons(LocalDateTime now, CouponPolicyStatus status, CouponType couponType, Pageable pageable) {
@@ -52,7 +56,7 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
                         coupon.status.eq(CouponStatus.ACTIVE),
                         coupon.couponType.eq(couponType)
                 );
-        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchCount);
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
     @Override
@@ -115,18 +119,27 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
 
     // 특정 도서 대상인지
     private BooleanExpression isTargetBook(Long bookId) {
-        if (bookId == null) return null;
+        if (bookId == null) return couponPolicyBook.bookId.isNull();
         return couponPolicyBook.bookId.eq(bookId);
     }
 
     // 특정 카테고리 대상인지
     private BooleanExpression isTargetCategory(List<Long> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) return null;
+        if (categoryIds == null || categoryIds.isEmpty()) return couponPolicyCategory.categoryId.isNull();
         return couponPolicyCategory.categoryId.in(categoryIds);
     }
 
     // 범용 정책인지 (책 조건 NULL AND 카테고리 조건 NULL)
     private BooleanExpression isGlobalPolicy() {
-        return couponPolicyBook.bookId.isNull().and(couponPolicyCategory.categoryId.isNull());
+        return JPAExpressions
+                .selectFrom(couponPolicyBook)
+                .where(couponPolicyBook.couponPolicy.eq(couponPolicy))
+                .notExists()
+                .and(
+                        JPAExpressions
+                                .selectFrom(couponPolicyCategory)
+                                .where(couponPolicyCategory.couponPolicy.eq(couponPolicy))
+                                .notExists()
+                );
     }
 }

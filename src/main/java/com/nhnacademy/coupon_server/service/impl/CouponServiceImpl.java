@@ -174,8 +174,9 @@ public class CouponServiceImpl implements CouponService {
             throw new CouponServerException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        List<Coupon> coupons = couponRepository.findByBookIdAndStatus(
+        List<Coupon> coupons = couponRepository.findSpecificCouponsForProduct(
                 bookId,
+                null,
                 CouponPolicyStatus.ACTIVE,
                 LocalDateTime.now()
         );

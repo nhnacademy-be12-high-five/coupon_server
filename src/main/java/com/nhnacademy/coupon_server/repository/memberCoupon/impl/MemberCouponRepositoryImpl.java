@@ -32,16 +32,11 @@ public class MemberCouponRepositoryImpl implements MemberCouponRepositoryCustom 
                 .selectFrom(memberCoupon)
                 .join(memberCoupon.coupon, coupon).fetchJoin()
                 .join(coupon.couponPolicy, couponPolicy).fetchJoin()
-                // OneToMany 관계는 데이터 뻥튀기 방지를 위해 distinct() 사용 혹은 배치 사이즈 설정 권장
-                // 여기서는 기존 EntityGraph 동작과 유사하게 leftJoin 사용
-                .leftJoin(couponPolicy.usableBooks, couponPolicyBook).fetchJoin()
-                .leftJoin(couponPolicy.usableCategories, couponPolicyCategory).fetchJoin()
                 .where(
                         memberCoupon.userId.eq(userId),
                         memberCoupon.status.eq(Status.ISSUED),
                         memberCoupon.expiredAt.after(now)
                 )
-                .distinct() // 중복 제거 (OneToMany 페치 조인 시 필수)
                 .fetch();
     }
 

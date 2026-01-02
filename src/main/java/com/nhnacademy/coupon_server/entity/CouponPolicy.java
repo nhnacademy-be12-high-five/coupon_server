@@ -5,6 +5,7 @@ import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ public class CouponPolicy {
     @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter
     @Builder.Default
+    @BatchSize(size = 100)
     private Set<CouponPolicyBook> usableBooks = new HashSet<>();
 
     @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
