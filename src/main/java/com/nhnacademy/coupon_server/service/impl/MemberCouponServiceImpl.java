@@ -10,7 +10,6 @@ import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
@@ -209,7 +208,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         if (coupon.getIssuedEndAt() != null && now.isAfter(coupon.getIssuedEndAt())) {
             throw new IllegalArgumentException("발급 기간이 지났습니다.");
         }
-        if (coupon.getCouponPolicy().isActive()) {
+        if (!coupon.getCouponPolicy().isActive()) {
             throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 더 이상 발급받을 수 없습니다.");
         }
     }

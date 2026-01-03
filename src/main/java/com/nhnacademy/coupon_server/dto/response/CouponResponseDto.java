@@ -1,7 +1,6 @@
 package com.nhnacademy.coupon_server.dto.response;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import lombok.Builder;
 import lombok.Getter;
@@ -39,7 +38,7 @@ public class CouponResponseDto {
         }
 
         String status;
-        if (coupon.getStatus() == CouponStatus.INACTIVE || coupon.getCouponPolicy().isActive()) {
+        if (coupon.getStatus() == CouponStatus.INACTIVE || !coupon.getCouponPolicy().isActive()) {
             status = "INACTIVE";
         } else if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
             status = "WAITING";

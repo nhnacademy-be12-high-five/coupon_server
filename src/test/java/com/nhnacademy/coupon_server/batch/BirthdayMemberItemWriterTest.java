@@ -34,12 +34,12 @@ class BirthdayMemberItemWriterTest {
         Chunk<Long> chunk = new Chunk<>(List.of(100L, 101L, 102L));
         Coupon birthdayCoupon = Coupon.builder().id(999L).build();
 
-        when(couponRepository.findCouponsByTypeAndStatus(any(), any(), any()))
+        when(couponRepository.findCouponsByTypeAndStatus(any(), anyBoolean(), any()))
                 .thenReturn(List.of(birthdayCoupon));
 
         writer.write(chunk);
 
-        verify(couponRepository, times(1)).findCouponsByTypeAndStatus(any(), any(), any());
+        verify(couponRepository, times(1)).findCouponsByTypeAndStatus(any(), anyBoolean(), any());
 
         verify(memberCouponService, times(1)).issueBirthdayCoupon(100L, 999L);
         verify(memberCouponService, times(1)).issueBirthdayCoupon(101L, 999L);

@@ -1,7 +1,6 @@
 package com.nhnacademy.coupon_server.repository.coupon.impl;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepositoryCustom;

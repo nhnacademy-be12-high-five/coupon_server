@@ -1,6 +1,5 @@
 package com.nhnacademy.coupon_server.entity;
 
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.persistence.*;

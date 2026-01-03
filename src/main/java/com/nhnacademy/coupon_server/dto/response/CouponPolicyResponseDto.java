@@ -3,7 +3,6 @@ package com.nhnacademy.coupon_server.dto.response;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import lombok.Builder;

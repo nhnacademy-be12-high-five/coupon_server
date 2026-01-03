@@ -5,7 +5,6 @@ import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.dto.response.CouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
-import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
@@ -72,6 +71,7 @@ class CouponServiceTest {
                 .id(policyId)
                 .name("Test Coupon Policy")
                 .discountType(DiscountType.FIXED)
+                .couponType(CouponType.NORMAL)
                 .build();
 
         CouponRequestDto requestDto = CouponRequestDto.builder()
@@ -119,21 +119,31 @@ class CouponServiceTest {
         CouponPolicy mockPolicy = CouponPolicy.builder()
                 .id(policyId)
                 .name("Test Policy")
+                .isActive(true)
+                .couponType(CouponType.NORMAL)
                 .build();
 
         Coupon coupon1 = Coupon.builder()
                 .id(1L)
                 .couponPolicy(mockPolicy)
                 .couponName("Coupon 1")
+                .issueCount(100)
+                .couponType(CouponType.NORMAL)
+                .status(CouponStatus.ACTIVE)
                 .build();
 
         Coupon coupon2 = Coupon.builder()
                 .id(2L)
                 .couponPolicy(mockPolicy)
                 .couponName("Coupon 2")
+                .issueCount(100)
+                .couponType(CouponType.NORMAL)
+                .status(CouponStatus.ACTIVE)
                 .build();
 
         when(couponRepository.findAll()).thenReturn(List.of(coupon1, coupon2));
+
+        when(memberCouponRepository.countByCouponIds(anyList())).thenReturn(List.of());
 
         List<CouponResponseDto> responseDtoList = couponService.findAll();
 
@@ -141,6 +151,7 @@ class CouponServiceTest {
         assertEquals("Coupon 1", responseDtoList.get(0).getCouponName());
         assertEquals("Coupon 2", responseDtoList.get(1).getCouponName());
         assertEquals(policyId, responseDtoList.get(0).getCouponPolicyId());
+        assertEquals("NORMAL", responseDtoList.get(0).getCouponType());
     }
 
     @Test
@@ -152,6 +163,7 @@ class CouponServiceTest {
                 .name("Test Policy")
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
+                .couponType(CouponType.NORMAL)
                 .build();
 
         Coupon limitedCoupon = Coupon.builder()
@@ -250,6 +262,7 @@ class CouponServiceTest {
                                     LocalDateTime start, LocalDateTime end, Integer count) {
         CouponPolicy policy = CouponPolicy.builder()
                 .isActive(policyIsActive)
+                .couponType(CouponType.NORMAL)
                 .build();
 
         return Coupon.builder()
@@ -270,21 +283,21 @@ class CouponServiceTest {
                 .id(1L)
                 .couponName("정상 쿠폰")
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().isActive(true).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).couponType(CouponType.NORMAL).build())
                 .build();
 
         Coupon overIssuedCoupon = Coupon.builder()
                 .id(2L)
                 .couponName("초과 발급된 쿠폰")
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().isActive(true).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).couponType(CouponType.NORMAL).build())
                 .build();
 
         Coupon unlimitedCoupon = Coupon.builder()
                 .id(3L)
                 .couponName("무제한 쿠폰")
                 .issueCount(null)
-                .couponPolicy(CouponPolicy.builder().isActive(true).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).couponType(CouponType.NORMAL).build())
                 .build();
 
         when(couponRepository.findAll()).thenReturn(List.of(normalCoupon, overIssuedCoupon, unlimitedCoupon));
