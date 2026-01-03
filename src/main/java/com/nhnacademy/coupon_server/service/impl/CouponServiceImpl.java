@@ -41,6 +41,8 @@ public class CouponServiceImpl implements CouponService {
     private final MemberCouponRepository memberCouponRepository;
     private final StringRedisTemplate redisTemplate;
 
+    private static final String COUPON_COUNT_KEY_PREFIX = "coupon:count:";
+
     @Override
     @Transactional
     public CouponResponseDto create(CouponRequestDto couponRequestDto) {
@@ -65,7 +67,7 @@ public class CouponServiceImpl implements CouponService {
         Coupon savedCoupon = couponRepository.save(coupon);
 
         if (savedCoupon.getIssueCount() != null) {
-            String countKey = "coupon:count:" + savedCoupon.getId();
+            String countKey = COUPON_COUNT_KEY_PREFIX + savedCoupon.getId();
             redisTemplate.opsForValue().set(countKey, String.valueOf(savedCoupon.getIssueCount()));
             if (savedCoupon.getIssuedEndAt() != null) {
                 redisTemplate.expireAt(countKey, Timestamp.valueOf(savedCoupon.getIssuedEndAt().plusDays(1)));
@@ -169,7 +171,7 @@ public class CouponServiceImpl implements CouponService {
             // 2. 상태 변경
             coupon.updateStatus(newStatus);
 
-            String redisKey = "coupon:count:" + couponId;
+            String redisKey = COUPON_COUNT_KEY_PREFIX + couponId;
 
             if (newStatus == CouponStatus.INACTIVE || newStatus == CouponStatus.EXPIRED) {
                 // 비활성화/만료 시 Redis에서 즉시 제거하여 발급 중단
@@ -189,7 +191,7 @@ public class CouponServiceImpl implements CouponService {
     private void restoreRedisStock(Coupon coupon) {
         if (coupon.getIssueCount() == null) return; // 무제한 쿠폰은 스킵
 
-        String countKey = "coupon:count:" + coupon.getId();
+        String countKey = COUPON_COUNT_KEY_PREFIX + coupon.getId();
         // 키가 없을 때만 복구 (이미 있으면 기존 수량 유지)
         if (Boolean.FALSE.equals(redisTemplate.hasKey(countKey))) {
             long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
@@ -234,9 +236,10 @@ public class CouponServiceImpl implements CouponService {
         );
         return coupons.stream()
                 .map(coupon -> {
-                    String countKey = "coupon:count:" + coupon.getId();
-                    Object countObj = redisTemplate.opsForValue().get(countKey);
-                    return CouponResponseDto.fromEntity(coupon);
+                    String countKey = COUPON_COUNT_KEY_PREFIX + coupon.getId();
+                    String countStr = redisTemplate.opsForValue().get(countKey);
+                    long issuedCount = countStr != null ? Long.parseLong(countStr) : 0L;
+                    return CouponResponseDto.fromEntity(coupon, issuedCount);
                 })
                 .toList();
     }

@@ -106,8 +106,7 @@ class CouponServiceTest {
         assertEquals("Summer Sale", responseDto.getCouponName());
         assertEquals(policyId, responseDto.getCouponPolicyId());
 
-        // [추가] Redis에 수량이 저장되었는지 검증
-        verify(valueOperations).set(eq("coupon:count:100"), eq("100"));
+        verify(valueOperations).set("coupon:count:100", "100");
         // 만료 시간 설정 검증
         verify(redisTemplate).expireAt(eq("coupon:count:100"), any(java.util.Date.class));
     }

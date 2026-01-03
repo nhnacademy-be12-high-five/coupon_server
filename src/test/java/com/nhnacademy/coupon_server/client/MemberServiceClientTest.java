@@ -31,7 +31,7 @@ class MemberServiceClientTest {
 
     @Test
     @DisplayName("멤버 서버 생일자 조회 요청 테스트")
-    void getBirthdayUserId_Success() throws Exception {
+    void getBirthdayUserId_Success(){
         int month = 12;
         int page = 0;
         int size = 10;
