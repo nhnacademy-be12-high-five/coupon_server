@@ -45,4 +45,36 @@ class BirthdayMemberItemWriterTest {
         verify(memberCouponService, times(1)).issueBirthdayCoupon(101L, 999L);
         verify(memberCouponService, times(1)).issueBirthdayCoupon(102L, 999L);
     }
+
+    @Test
+    @DisplayName("BeforeStep 실행 시 캐시 데이터(couponId)가 초기화되어, 재실행 시 다시 조회해야 한다")
+    void beforeStep_ResetsCache() {
+        Chunk<Long> chunk = new Chunk<>(List.of(1L));
+        Coupon coupon = Coupon.builder().id(123L).build();
+
+        when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any()))
+                .thenReturn(List.of(coupon));
+
+        writer.write(chunk);
+        verify(couponRepository, times(1)).findCouponsByCommentAndStatus(any(), any(), any());
+
+        writer.beforeStep(mock(org.springframework.batch.core.StepExecution.class));
+
+        writer.write(chunk);
+
+        verify(couponRepository, times(2)).findCouponsByCommentAndStatus(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("활성화된 생일 쿠폰 정책을 찾을 수 없으면 IllegalStateException 발생")
+    void write_ThrowsException_WhenNoPolicyFound() {
+        Chunk<Long> chunk = new Chunk<>(List.of(100L));
+
+        when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any()))
+                .thenReturn(List.of());
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+                writer.write(chunk)
+        );
+    }
 }

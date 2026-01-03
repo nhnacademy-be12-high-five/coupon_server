@@ -431,4 +431,62 @@ class CouponServiceTest {
         // 상태는 그대로 유지
         Assertions.assertEquals(CouponStatus.ACTIVE, coupon.getStatus());
     }
+
+    @Test
+    @DisplayName("상품 상세 페이지 - 적용 가능한 모든 쿠폰 조회 (전역 + 타겟)")
+    void getCouponsForProduct_Success() {
+        Long bookId = 100L;
+        List<Long> categoryIds = List.of(10L, 20L);
+
+        Coupon globalCoupon = Coupon.builder()
+                .id(1L)
+                .couponName("전역 쿠폰")
+                .couponPolicy(CouponPolicy.builder().id(1L).build())
+                .build();
+
+        Coupon targetCoupon = Coupon.builder()
+                .id(2L)
+                .couponName("도서 타겟 쿠폰")
+                .couponPolicy(CouponPolicy.builder().id(2L).build())
+                .build();
+
+        when(couponRepository.findCouponsForProduct(eq(bookId), eq(categoryIds), eq(CouponPolicyStatus.ACTIVE), any(LocalDateTime.class)))
+                .thenReturn(List.of(globalCoupon, targetCoupon));
+
+        List<CouponResponseDto> result = couponService.getCouponsForProduct(bookId, categoryIds);
+
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertEquals("전역 쿠폰", result.get(0).getCouponName());
+        Assertions.assertEquals("도서 타겟 쿠폰", result.get(1).getCouponName());
+
+        verify(couponRepository).findCouponsForProduct(eq(bookId), eq(categoryIds), eq(CouponPolicyStatus.ACTIVE), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("상품 전용 쿠폰 조회 - Redis 조회 로직 포함")
+    void getBookSpecificCoupons_Success() {
+        Long bookId = 100L;
+        List<Long> categoryIds = List.of(10L);
+
+        Coupon specificCoupon = Coupon.builder()
+                .id(3L)
+                .couponName("상품 전용 쿠폰")
+                .couponPolicy(CouponPolicy.builder().id(3L).build())
+                .issueCount(50)
+                .build();
+
+        when(couponRepository.findSpecificCouponsForProduct(eq(bookId), eq(categoryIds), eq(CouponPolicyStatus.ACTIVE), any(LocalDateTime.class)))
+                .thenReturn(List.of(specificCoupon));
+
+        // 서비스 코드 내부에서 redisTemplate.opsForValue().get()을 호출하므로 Mocking 필요
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("coupon:count:3")).thenReturn("45");
+
+        List<CouponResponseDto> result = couponService.getBookSpecificCoupons(bookId, categoryIds);
+
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals("상품 전용 쿠폰", result.get(0).getCouponName());
+
+        verify(redisTemplate.opsForValue()).get("coupon:count:3");
+    }
 }

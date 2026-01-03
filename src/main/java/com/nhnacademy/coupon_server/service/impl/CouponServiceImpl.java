@@ -151,50 +151,6 @@ public class CouponServiceImpl implements CouponService {
         return new PageImpl<>(dtoList, pageable, coupons.getTotalElements());
     }
 
-//    @Override
-//    public Page<CouponResponseDto> getCoupons(Pageable pageable) {
-//        Page<Coupon> coupons = couponRepository.findAll(pageable);
-//
-//        return coupons.map(coupon -> {
-//            long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
-//
-//            Integer remainingCount = null;
-//            if (coupon.getIssueCount() != null) {
-//                remainingCount = coupon.getIssueCount() - (int) issuedCount;
-//            }
-//
-//            return CouponResponseDto.fromEntity(coupon, remainingCount);
-//        });
-//    }
-
-    @Override
-    public List<CouponResponseDto> findCouponsByBookId(Long bookId) {
-        // 1. 입력값 검증
-        if (bookId == null || bookId <= 0) {
-            throw new CouponServerException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        List<Coupon> coupons = couponRepository.findSpecificCouponsForProduct(
-                bookId,
-                null,
-                CouponPolicyStatus.ACTIVE,
-                LocalDateTime.now()
-        );
-
-        return coupons.stream()
-                .map(coupon -> {
-                    // 2. 남은 수량 계산 (다른 메서드와 로직 통일)
-                    Integer remainingCount = null;
-                    if (coupon.getIssueCount() != null) {
-                        long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
-                        remainingCount = Math.max(0, coupon.getIssueCount() - (int) issuedCount);
-                    }
-                    // remainingCount를 전달하여 DTO 생성 (SOLD_OUT 상태 등 반영됨)
-                    return CouponResponseDto.fromEntity(coupon, remainingCount);
-                })
-                .toList();
-    }
-
     @Override
     @Transactional
     public void updateCouponStatus(Long couponId, CouponStatus status) {
