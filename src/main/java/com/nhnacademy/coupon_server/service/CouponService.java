@@ -21,8 +21,6 @@ public interface CouponService {
     //발급 가능한 쿠폰 목록 조회
     Page<CouponResponseDto> findIssuableCoupons(Pageable pageable);
 
-    List<CouponResponseDto> findCouponsByBookId(Long bookId);
-
     void updateCouponStatus(Long couponId, CouponStatus status);
 
     List<CouponResponseDto> getCouponsForProduct(Long bookId, List<Long> categoryIds);

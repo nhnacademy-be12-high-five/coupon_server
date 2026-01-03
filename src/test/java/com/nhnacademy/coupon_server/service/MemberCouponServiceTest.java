@@ -10,11 +10,13 @@ import com.nhnacademy.coupon_server.dto.response.ErrorResponse;
 import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
+import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
+import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.exception.GlobalExceptionHandler;
@@ -158,6 +160,32 @@ public class MemberCouponServiceTest {
     }
 
     @Test
+    @DisplayName("사용자 발급 성공 - Redis 불일치 복구 (Redis 중복 -1 리턴이나 DB에 없음)")
+    void issueCouponByUser_RedisInconsistency_ProceedsToSave() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder()
+                .id(couponId)
+                .issueCount(100)
+                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .issuedStartAt(LocalDateTime.now().minusDays(1))
+                .issuedEndAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString())).thenReturn(-1L);
+
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
+
+        when(dateCalculator.calculateExpiration(coupon)).thenReturn(LocalDateTime.now().plusDays(1));
+
+        memberCouponService.issueCouponByUser(userId, couponId);
+
+        verify(memberCouponRepository).save(any(MemberCoupon.class));
+    }
+
+    @Test
     @DisplayName("사용자 발급 실패 - 이미 발급된 유저 (Redis Lua Script 반환값 -1)")
     void issueCouponByUser_Failure_Duplicate_Redis() {
         Long userId = 1L;
@@ -187,21 +215,37 @@ public class MemberCouponServiceTest {
     }
 
     @Test
-    @DisplayName("사용자 발급 실패 - 발급 기간 아님 (Before Start)")
-    void issueCouponByUser_Fail_BeforeStart() {
+    @DisplayName("사용자 발급 실패 - 기간 만료 (Expired)")
+    void issueCouponByUser_Fail_Expired() {
         Long couponId = 10L;
-        Coupon coupon = Coupon.builder().issuedStartAt(LocalDateTime.now().plusDays(1)).build(); // 미래 시작
+        Coupon coupon = Coupon.builder()
+                .issuedStartAt(LocalDateTime.now().minusDays(10))
+                .issuedEndAt(LocalDateTime.now().minusDays(1)) // 이미 종료됨
+                .build();
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
 
         Assertions.assertThrows(IllegalArgumentException.class, () -> memberCouponService.issueCouponByUser(1L, couponId));
     }
 
     @Test
-    @DisplayName("사용자 발급 실패 - 수량 매진 (Redis Lua Script 반환값 0)")
+    @DisplayName("사용자 발급 실패 - 정책 비활성화")
+    void issueCouponByUser_Fail_InactivePolicy() {
+        Long couponId = 10L;
+        Coupon coupon = Coupon.builder()
+                .issuedStartAt(LocalDateTime.now().minusDays(1))
+                .issuedEndAt(LocalDateTime.now().plusDays(1))
+                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.INACTIVE).build())
+                .build();
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+
+        Assertions.assertThrows(IllegalStateException.class, () -> memberCouponService.issueCouponByUser(1L, couponId));
+    }
+
+    @Test
+    @DisplayName("사용자 발급 실패 - 수량 매진 (Redis 0)")
     void issueCouponByUser_Fail_SoldOut() {
         Long userId = 1L;
         Long couponId = 10L;
-
         Coupon coupon = Coupon.builder()
                 .id(couponId)
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
@@ -211,10 +255,7 @@ public class MemberCouponServiceTest {
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
-
-        // [핵심 변경] Lua Script가 0(매진) 또는 null 반환
-        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString()))
-                .thenReturn(0L);
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString())).thenReturn(0L);
 
         Assertions.assertThrows(IllegalStateException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
@@ -264,19 +305,61 @@ public class MemberCouponServiceTest {
     }
 
     @Test
-    @DisplayName("생일 쿠폰 발급 - 동시성 이슈 발생 시 예외 삼킴")
-    void issueBirthdayCoupon_DataIntegrity_SwallowException() {
+    @DisplayName("웰컴 쿠폰 발급 중단 - 이미 발급받음")
+    void issueWelcomeCoupon_Skip_AlreadyExists() {
+        Long userId = 1L;
+        Coupon welcomeCoupon = Coupon.builder().id(100L).build();
+
+        when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any())).thenReturn(List.of(welcomeCoupon));
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, 100L)).thenReturn(true);
+
+        memberCouponService.issueWelcomeCoupon(userId);
+
+        verify(memberCouponRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("웰컴 쿠폰 발급 실패 - 정책 없음")
+    void issueWelcomeCoupon_Fail_NoPolicy() {
+        when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any())).thenReturn(List.of());
+
+        Assertions.assertThrows(CouponNotFoundException.class, () -> memberCouponService.issueWelcomeCoupon(1L));
+    }
+
+    @Test
+    @DisplayName("생일 쿠폰 발급 성공")
+    void issueBirthdayCoupon_Success() {
+        Long userId = 1L;
+        Long couponId = 100L;
+        Coupon coupon = Coupon.builder().id(couponId).build();
+
+        when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(false);
+        when(dateCalculator.calculateExpiration(coupon)).thenReturn(LocalDateTime.now().plusDays(30));
+
+        memberCouponService.issueBirthdayCoupon(userId, couponId);
+
+        verify(memberCouponRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("생일 쿠폰 발급 중단 - 이미 발급받음")
+    void issueBirthdayCoupon_Skip_Duplicate() {
         Long userId = 1L;
         Long couponId = 100L;
         Coupon coupon = Coupon.builder().id(couponId).build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)).thenReturn(true);
-        // 말일 계산이 로직 내에 포함되어 있음 -> 별도 Mocking 불필요 (Repository 호출만 확인)
-        assertDoesNotThrow(() -> memberCouponService.issueBirthdayCoupon(userId, couponId));
+
+        memberCouponService.issueBirthdayCoupon(userId, couponId);
+
         verify(memberCouponRepository, never()).save(any());
     }
 
+    // ==========================================
+    // 4. 조회, 계산, 사용, 취소
+    // ==========================================
     @Test
     @DisplayName("내부 생성용 (createMemberCoupon) 성공")
     void createMemberCoupon_Success() {
@@ -293,18 +376,11 @@ public class MemberCouponServiceTest {
         verify(memberCouponRepository).save(any(MemberCoupon.class));
     }
 
-
-    // ==========================================
-    // 4. 조회, 계산, 사용, 취소 (PK 기반 로직 변경 반영)
-    // ==========================================
     @Test
     @DisplayName("회원 쿠폰 전체 조회 성공")
     void findAll_Success() {
         Pageable pageable = PageRequest.of(0, 10);
-        Coupon coupon = Coupon.builder()
-                .couponName("Test")
-                .couponPolicy(CouponPolicy.builder().discountType(DiscountType.FIXED).discountValue(1000L).build())
-                .build();
+        Coupon coupon = Coupon.builder().couponPolicy(CouponPolicy.builder().discountType(DiscountType.FIXED).build()).build();
         Page<MemberCoupon> page = new PageImpl<>(List.of(MemberCoupon.builder().coupon(coupon).build()));
 
         when(memberCouponRepository.findAll(pageable)).thenReturn(page);
@@ -314,52 +390,123 @@ public class MemberCouponServiceTest {
     }
 
     @Test
-    @DisplayName("할인 계산 성공")
-    void calculateDiscount_Success() {
+    @DisplayName("특정 회원의 쿠폰 목록 조회")
+    void findCouponByUserId_Success() {
         Long userId = 1L;
-        Long memberCouponId = 55L; // DTO에 담기는 ID는 MemberCoupon의 PK임
-        Long orderPrice = 10000L;
+        Pageable pageable = PageRequest.of(0, 10);
+        MemberCoupon mc = MemberCoupon.builder().coupon(Coupon.builder().couponPolicy(CouponPolicy.builder().discountType(DiscountType.FIXED).build()).build()).build();
 
-        CouponPolicy policy = CouponPolicy.builder()
-                .discountType(DiscountType.FIXED).discountValue(2000L).minOrderValue(5000L).build();
-        Coupon coupon = Coupon.builder().couponPolicy(policy).build();
+        when(memberCouponRepository.findMemberCouponsByUserId(userId, pageable)).thenReturn(new PageImpl<>(List.of(mc)));
 
-        // MemberCoupon 생성 (소유자 userId 설정 필수)
-        MemberCoupon mc = MemberCoupon.builder()
-                .id(memberCouponId)
-                .userId(userId)
-                .coupon(coupon)
-                .status(Status.ISSUED)
-                .expiredAt(LocalDateTime.now().plusDays(1))
-                .build();
-
-        // 변경: findByUserIdAndCouponId -> findById
-        when(memberCouponRepository.findById(memberCouponId)).thenReturn(Optional.of(mc));
-
-        CouponCalculationResponseDto res = memberCouponService.calculateDiscount(
-                userId,
-                new CouponCalculationRequestDto(memberCouponId, orderPrice)
-        );
-        Assertions.assertEquals(2000L, res.getDiscountAmount());
-        Assertions.assertEquals(8000L, res.getFinalPrice());
+        Page<MemberCouponResponseDto> result = memberCouponService.findCouponByUserId(userId, pageable);
+        Assertions.assertEquals(1, result.getTotalElements());
     }
 
     @Test
-    @DisplayName("할인 계산 실패 - 소유자 불일치")
-    void calculateDiscount_Fail_OwnerMismatch() {
+    @DisplayName("주문 시 사용 가능 쿠폰 조회 (필터링 로직 검증)")
+    void findUsableCoupons_Filtering() {
         Long userId = 1L;
-        Long otherUserId = 2L;
-        Long memberCouponId = 55L;
+        List<Long> bookIds = List.of(100L);
+        List<Long> categoryIds = List.of(10L);
 
-        MemberCoupon mc = MemberCoupon.builder()
-                .id(memberCouponId)
-                .userId(otherUserId) // 다른 사람 소유
+        // 1. 일반 쿠폰 (모두 적용)
+        Coupon generalCoupon = Coupon.builder()
+                .id(1L)
+                .couponName("General")
+                .couponPolicy(CouponPolicy.builder()
+                        .discountType(DiscountType.FIXED)
+                        .discountValue(1000L)
+                        .build())
                 .build();
+        MemberCoupon mc1 = MemberCoupon.builder().coupon(generalCoupon).build();
+
+        // 2. 도서 전용 쿠폰 (책 ID: 100 - 매칭)
+        CouponPolicy bookPolicy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .build();
+        bookPolicy.getUsableBooks().add(CouponPolicyBook.builder().bookId(100L).build());
+
+        Coupon bookCoupon = Coupon.builder()
+                .id(2L)
+                .couponName("Book Target")
+                .couponPolicy(bookPolicy)
+                .build();
+        MemberCoupon mc2 = MemberCoupon.builder().coupon(bookCoupon).build();
+
+        // 3. 다른 도서 전용 쿠폰 (책 ID: 999 - 불일치)
+        CouponPolicy otherBookPolicy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED)
+                .discountValue(1000L)
+                .build();
+        otherBookPolicy.getUsableBooks().add(CouponPolicyBook.builder().bookId(999L).build());
+
+        Coupon otherBookCoupon = Coupon.builder()
+                .id(3L)
+                .couponName("Other Book")
+                .couponPolicy(otherBookPolicy)
+                .build();
+        MemberCoupon mc3 = MemberCoupon.builder().coupon(otherBookCoupon).build();
+
+        when(memberCouponRepository.findUsableCoupons(eq(userId), any(LocalDateTime.class)))
+                .thenReturn(List.of(mc1, mc2, mc3));
+
+        List<MemberCouponResponseDto> result = memberCouponService.findUsableCoupons(userId, bookIds, categoryIds);
+
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertTrue(result.stream().anyMatch(dto -> dto.getCouponName().equals("General")));
+        Assertions.assertTrue(result.stream().anyMatch(dto -> dto.getCouponName().equals("Book Target")));
+        Assertions.assertFalse(result.stream().anyMatch(dto -> dto.getCouponName().equals("Other Book")));
+    }
+
+    @Test
+    @DisplayName("주문 시 사용 가능 쿠폰 조회 - bookIds가 null이거나 비어있으면 전체 반환")
+    void findUsableCoupons_ReturnAllIfNoBooks() {
+        MemberCoupon mc = MemberCoupon.builder()
+                .coupon(Coupon.builder()
+                        .couponPolicy(CouponPolicy.builder()
+                                .discountType(DiscountType.FIXED)
+                                .discountValue(1000L)
+                                .build())
+                        .build())
+                .build();
+
+        when(memberCouponRepository.findUsableCoupons(eq(1L), any(LocalDateTime.class))).thenReturn(List.of(mc));
+
+        List<MemberCouponResponseDto> result = memberCouponService.findUsableCoupons(1L, null, null);
+
+        Assertions.assertEquals(1, result.size());
+    }
+
+    @Test
+    @DisplayName("할인 계산 성공 - 금액 초과 시 주문금액까지만 할인")
+    void calculateDiscount_CapAtOrderPrice() {
+        Long memberCouponId = 55L;
+        Long orderPrice = 3000L;
+
+        CouponPolicy policy = CouponPolicy.builder()
+                .discountType(DiscountType.FIXED).discountValue(5000L).minOrderValue(1000L).build();
+        MemberCoupon mc = MemberCoupon.builder()
+                .id(memberCouponId).userId(1L).coupon(Coupon.builder().couponPolicy(policy).build())
+                .status(Status.ISSUED).expiredAt(LocalDateTime.now().plusDays(1)).build();
 
         when(memberCouponRepository.findById(memberCouponId)).thenReturn(Optional.of(mc));
 
+        CouponCalculationResponseDto res = memberCouponService.calculateDiscount(1L, new CouponCalculationRequestDto(memberCouponId, orderPrice));
+
+        Assertions.assertEquals(3000L, res.getDiscountAmount());
+        Assertions.assertEquals(0L, res.getFinalPrice());
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 실패 - 소유자 불일치")
+    void useCoupon_Fail_OwnerMismatch() {
+        Long memberCouponId = 1L;
+        MemberCoupon mc = MemberCoupon.builder().id(memberCouponId).userId(2L).build(); // 다른 유저
+        when(memberCouponRepository.findById(memberCouponId)).thenReturn(Optional.of(mc));
+
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-                memberCouponService.calculateDiscount(userId, new CouponCalculationRequestDto(memberCouponId, 10000L))
+                memberCouponService.useCoupon(1L, new MemberCouponUseRequestDto(memberCouponId, 100L))
         );
     }
 
