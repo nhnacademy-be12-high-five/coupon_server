@@ -112,7 +112,10 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 throw new IllegalStateException("쿠폰이 모두 소진되었습니다.");
             }
             if (result == -1) {
-                throw new DuplicateCouponException();
+                if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+                    throw new DuplicateCouponException();
+                }
+                log.warn("Redis 불일치 감지: Redis 발급 이력 있음 / DB 없음 -> 재저장 시도 (User: {}, Coupon: {})", userId, couponId);
             }
         }
         saveMemberCoupon(userId, coupon);
