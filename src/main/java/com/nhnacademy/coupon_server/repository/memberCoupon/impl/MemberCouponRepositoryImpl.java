@@ -18,8 +18,6 @@ import java.util.List;
 
 import static com.nhnacademy.coupon_server.entity.QCoupon.coupon;
 import static com.nhnacademy.coupon_server.entity.QCouponPolicy.couponPolicy;
-import static com.nhnacademy.coupon_server.entity.QCouponPolicyBook.couponPolicyBook;
-import static com.nhnacademy.coupon_server.entity.QCouponPolicyCategory.couponPolicyCategory;
 import static com.nhnacademy.coupon_server.entity.QMemberCoupon.memberCoupon;
 
 @RequiredArgsConstructor
