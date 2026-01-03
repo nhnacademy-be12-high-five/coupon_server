@@ -47,7 +47,7 @@ public class CouponServiceImpl implements CouponService {
         log.info("쿠폰 템플릿 생성 요청 - 정책 ID: {}, 이름: {}", couponRequestDto.getId(), couponRequestDto.getCouponName());
 
         CouponPolicy couponPolicy = couponPolicyRepository.findById(couponRequestDto.getId())
-                .orElseThrow(() -> new CouponPolicyNotFoundException());
+                .orElseThrow(CouponPolicyNotFoundException::new);
 
         Coupon coupon = Coupon.builder()
                 .couponPolicy(couponPolicy)
@@ -238,6 +238,6 @@ public class CouponServiceImpl implements CouponService {
                     Object countObj = redisTemplate.opsForValue().get(countKey);
                     return CouponResponseDto.fromEntity(coupon);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 }

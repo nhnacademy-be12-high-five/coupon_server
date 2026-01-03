@@ -186,7 +186,6 @@ class MemberCouponControllerTest {
     @DisplayName("주문 시 적용 가능 쿠폰 조회 성공")
     void getUsableCouponsSuccess() throws Exception {
         Long userId = 1L;
-        List<Long> bookIds = new ArrayList<>();
 
         MemberCouponResponseDto responseDto = MemberCouponResponseDto.builder()
                 .couponName("주문 할인 쿠폰")
@@ -210,8 +209,6 @@ class MemberCouponControllerTest {
         Long userId = 1L;
         Long couponId = 100L;
         Long orderId = 20251127L;
-        Long expectedDiscount = EXPECTED_DISCOUNT;
-        Long expectedFinalPrice = EXPECTED_FINAL_PRICE;
 
         MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(couponId, orderId);
 
