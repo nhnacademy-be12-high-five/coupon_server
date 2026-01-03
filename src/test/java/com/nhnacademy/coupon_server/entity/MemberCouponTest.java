@@ -1,6 +1,7 @@
 package com.nhnacademy.coupon_server.entity;
 
 import com.nhnacademy.coupon_server.entity.state.Status;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -70,5 +71,32 @@ class MemberCouponTest {
         assertThatThrownBy(coupon::validateUsable)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("유효 기간이 지난 쿠폰입니다.");
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 취소 성공 - 상태가 ISSUED로 변경되고 사용 정보가 초기화되어야 함")
+    void cancel_Success() {
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .status(Status.USED)           // 사용된 상태
+                .usedAt(LocalDateTime.now())   // 사용 일시 존재
+                .orderId(12345L)               // 주문 번호 존재
+                .build();
+
+        memberCoupon.cancel();
+
+        Assertions.assertEquals(Status.ISSUED, memberCoupon.getStatus(), "상태가 ISSUED로 변경되어야 합니다.");
+        Assertions.assertNull(memberCoupon.getUsedAt(), "사용 일시가 null로 초기화되어야 합니다.");
+        Assertions.assertNull(memberCoupon.getOrderId(), "주문 ID가 null로 초기화되어야 합니다.");
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 취소 실패 - USED 상태가 아닐 때 예외 발생")
+    void cancel_Fail_NotUsed() {
+        MemberCoupon memberCoupon = MemberCoupon.builder()
+                .status(Status.ISSUED) // 사용된 상태가 아님 (ISSUED or EXPIRED)
+                .build();
+
+        IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class, memberCoupon::cancel);
+        Assertions.assertEquals("사용된 상태의 쿠폰만 취소할 수 있습니다.", exception.getMessage());
     }
 }

@@ -3,9 +3,11 @@ package com.nhnacademy.coupon_server.service;
 import com.nhnacademy.coupon_server.dto.request.CouponPolicyRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
+import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
+import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.repository.couponPolicy.CouponPolicyBookRepository;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -108,6 +111,56 @@ class CouponPolicyServiceTest {
     }
 
     @Test
+    @DisplayName("쿠폰 정책 생성 실패 - 정률 할인 100% 초과 예외 발생")
+    void testCreatePolicyFail_InvalidPercentage() {
+        couponPolicyRequestDto.setDiscountType(DiscountType.PERCENTAGE);
+        couponPolicyRequestDto.setDiscountValue(101L); // 100% 초과 설정
+
+        Assertions.assertThrows(IllegalArgumentException.class, () ->
+                couponPolicyService.create(couponPolicyRequestDto)
+        );
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 생성 - 정액(FIXED) 할인 시 최대 할인 금액이 없으면 할인 금액과 동일하게 설정")
+    void testCreatePolicy_FixedType_MaxDiscountAutoSet() {
+        couponPolicyRequestDto.setDiscountType(DiscountType.FIXED);
+        couponPolicyRequestDto.setDiscountValue(5000L);
+        couponPolicyRequestDto.setMaxDiscountValue(null); // 최대 할인 금액 미설정
+
+        // ArgumentCaptor를 사용해 repository.save()에 넘겨진 객체를 포획
+        ArgumentCaptor<CouponPolicy> policyCaptor = ArgumentCaptor.forClass(CouponPolicy.class);
+        when(couponPolicyRepository.save(any(CouponPolicy.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        couponPolicyService.create(couponPolicyRequestDto);
+
+        verify(couponPolicyRepository).save(policyCaptor.capture());
+        CouponPolicy savedPolicy = policyCaptor.getValue();
+
+        // 검증: 정액 할인은 maxDiscountValue가 discountValue(5000)와 같아야 함
+        Assertions.assertEquals(5000L, savedPolicy.getMaxDiscountValue());
+    }
+
+    @Test
+    @DisplayName("쿠폰 정책 생성 - 정률(PERCENTAGE) 할인 시 최대 할인 금액이 0이면 Null로 설정")
+    void testCreatePolicy_PercentageType_MaxDiscountNull() {
+        couponPolicyRequestDto.setDiscountType(DiscountType.PERCENTAGE);
+        couponPolicyRequestDto.setDiscountValue(20L);
+        couponPolicyRequestDto.setMaxDiscountValue(0L); // 0으로 입력됨
+
+        ArgumentCaptor<CouponPolicy> policyCaptor = ArgumentCaptor.forClass(CouponPolicy.class);
+        when(couponPolicyRepository.save(any(CouponPolicy.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        couponPolicyService.create(couponPolicyRequestDto);
+
+        verify(couponPolicyRepository).save(policyCaptor.capture());
+        CouponPolicy savedPolicy = policyCaptor.getValue();
+
+        // 검증: 정률 할인은 maxDiscountValue가 0일 경우 로직에 의해 null로 저장되어야 함 (무제한 의미)
+        Assertions.assertNull(savedPolicy.getMaxDiscountValue());
+    }
+
+    @Test
     @DisplayName("쿠폰 정책 전체 조회 성공")
     void testFindAllSuccess(){
         CouponPolicy policy1 = CouponPolicy.builder()
@@ -195,4 +248,47 @@ class CouponPolicyServiceTest {
 
         verify(couponPolicyRepository, never()).deleteById(id);
     }
+
+    @Test
+    @DisplayName("쿠폰 정책 삭제(비활성화) 시 관련 발급 쿠폰 일괄 만료 처리 검증")
+    void testDeleteById_ShouldExpireIssuedCoupons() {
+        Long policyId = 1L;
+
+        // 1. 삭제할 정책 준비 (Active 상태)
+        CouponPolicy policyToDelete = CouponPolicy.builder()
+                .id(policyId)
+                .status(CouponPolicyStatus.ACTIVE)
+                .build();
+
+        // 2. 해당 정책으로 발급된 쿠폰 리스트 준비 (ISSUED 상태)
+        MemberCoupon coupon1 = MemberCoupon.builder()
+                .id(101L)
+                .status(Status.ISSUED)
+                .build();
+
+        MemberCoupon coupon2 = MemberCoupon.builder()
+                .id(102L)
+                .status(Status.ISSUED)
+                .build();
+
+        List<MemberCoupon> issuedCoupons = List.of(coupon1, coupon2);
+
+        // 3. Mocking
+        when(couponPolicyRepository.findById(policyId)).thenReturn(Optional.of(policyToDelete));
+        when(memberCouponRepository.findAllByCouponCouponPolicyIdAndStatus(policyId, Status.ISSUED))
+                .thenReturn(issuedCoupons);
+
+        couponPolicyService.deleteById(policyId);
+
+        // A. 정책 상태가 비활성화(INACTIVE) 되었는지 검증
+        Assertions.assertEquals(CouponPolicyStatus.INACTIVE, policyToDelete.getStatus());
+
+        // B. 발급된 쿠폰들의 상태가 모두 만료(EXPIRED)로 변경되었는지 검증 (핵심 로직)
+        Assertions.assertEquals(Status.EXPIRED, coupon1.getStatus(), "첫 번째 쿠폰이 만료 처리되어야 합니다.");
+        Assertions.assertEquals(Status.EXPIRED, coupon2.getStatus(), "두 번째 쿠폰이 만료 처리되어야 합니다.");
+
+        // C. Repository 조회 메서드 호출 검증
+        verify(memberCouponRepository, times(1)).findAllByCouponCouponPolicyIdAndStatus(policyId, Status.ISSUED);
+    }
+
 }

@@ -36,6 +36,9 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     @Transactional
     public CouponPolicyResponseDto create(CouponPolicyRequestDto couponPolicyRequestDto) {
         log.info("새로 만든 쿠폰 정책 -> {}", couponPolicyRequestDto.getName());
+        if (!couponPolicyRequestDto.isValidPercentage()) {
+            throw new IllegalArgumentException("정률 할인은 100%를 초과할 수 없습니다.");
+        }
 
         Long maxDiscountValue = couponPolicyRequestDto.getMaxDiscountValue();
 
