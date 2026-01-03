@@ -26,7 +26,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -41,8 +40,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = {"spring.cloud.config.enabled=false"}
 )
 class MemberCouponControllerTest {
-    private static final Long EXPECTED_DISCOUNT = 5000L;
-    private static final Long EXPECTED_FINAL_PRICE = 25000L;
 
     @Autowired
     private MockMvc mockMvc;

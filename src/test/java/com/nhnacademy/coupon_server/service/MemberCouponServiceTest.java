@@ -504,9 +504,10 @@ public class MemberCouponServiceTest {
         MemberCoupon mc = MemberCoupon.builder().id(memberCouponId).userId(2L).build(); // 다른 유저
         when(memberCouponRepository.findById(memberCouponId)).thenReturn(Optional.of(mc));
 
+        MemberCouponUseRequestDto requestDto = new MemberCouponUseRequestDto(memberCouponId, 100L);
+
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-                memberCouponService.useCoupon(1L, new MemberCouponUseRequestDto(memberCouponId, 100L))
-        );
+                memberCouponService.useCoupon(1L, requestDto));
     }
 
     @Test
