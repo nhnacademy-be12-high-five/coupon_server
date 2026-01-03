@@ -59,6 +59,10 @@ public class Coupon {
     @JoinColumn(name = "coupon_policy_id", nullable = false)
     private CouponPolicy couponPolicy;
 
+    public CouponType getCouponType() {
+        return this.couponPolicy.getCouponType();
+    }
+
     public void updateStatus(CouponStatus newStatus) {
         this.status = newStatus;
     }

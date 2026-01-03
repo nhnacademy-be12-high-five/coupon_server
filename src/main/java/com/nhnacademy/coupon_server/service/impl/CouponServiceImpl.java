@@ -124,7 +124,7 @@ public class CouponServiceImpl implements CouponService {
     public Page<CouponResponseDto> findIssuableCoupons(Pageable pageable) {
         LocalDateTime now = LocalDateTime.now();
         Page<Coupon> coupons = couponRepository.findIssuableCoupons(
-                now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable
+                now, true, CouponType.NORMAL, pageable
         );
 
         if (coupons.isEmpty()) {
@@ -177,7 +177,7 @@ public class CouponServiceImpl implements CouponService {
         List<Coupon> coupons = couponRepository.findSpecificCouponsForProduct(
                 bookId,
                 null,
-                CouponPolicyStatus.ACTIVE,
+                true,
                 LocalDateTime.now()
         );
 
@@ -257,7 +257,7 @@ public class CouponServiceImpl implements CouponService {
         List<Coupon> coupons = couponRepository.findCouponsForProduct(
                 bookId,
                 categoryIds,
-                CouponPolicyStatus.ACTIVE, // 활성화된 정책만
+                true, // 활성화된 정책만
                 LocalDateTime.now()
         );
 
@@ -272,7 +272,7 @@ public class CouponServiceImpl implements CouponService {
         List<Coupon> coupons = couponRepository.findSpecificCouponsForProduct(
                 bookId,
                 categoryIds,
-                CouponPolicyStatus.ACTIVE,
+                true,
                 LocalDateTime.now()
         );
         return coupons.stream()

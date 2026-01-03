@@ -3,7 +3,7 @@ package com.nhnacademy.coupon_server.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.coupon_server.dto.request.CouponPolicyRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponPolicyResponseDto;
-import com.nhnacademy.coupon_server.entity.state.Comment;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
@@ -45,7 +45,7 @@ class CouponPolicyAdminControllerTest {
     void createCouponPolicySuccess() throws Exception {
         CouponPolicyRequestDto requestDto = CouponPolicyRequestDto.builder()
                 .name("신규 가입 쿠폰")
-                .comment(Comment.WELCOME)
+                .couponType(CouponType.WELCOME)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .minOrderValue(10000L)
@@ -55,7 +55,7 @@ class CouponPolicyAdminControllerTest {
         CouponPolicyResponseDto responseDto = CouponPolicyResponseDto.builder()
                 .id(1L)
                 .name("신규 가입 쿠폰")
-                .comment(Comment.WELCOME)
+                .couponType(CouponType.WELCOME)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .minOrderValue(10000L)
@@ -80,7 +80,7 @@ class CouponPolicyAdminControllerTest {
     @DisplayName("쿠폰 정책 생성 실패 - 유효성 검사 실패 (이름 누락)")
     void createCouponPolicyFailureNoName() throws Exception {
         CouponPolicyRequestDto requestDto = CouponPolicyRequestDto.builder()
-                .comment(Comment.WELCOME)
+                .couponType(CouponType.WELCOME)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .minOrderValue(10000L)
@@ -99,7 +99,7 @@ class CouponPolicyAdminControllerTest {
     void createCouponPolicyFailureNegativeDiscount() throws Exception {
         CouponPolicyRequestDto requestDto = CouponPolicyRequestDto.builder()
                 .name("할인 금액 오류 정책")
-                .comment(Comment.WELCOME)
+                .couponType(CouponType.WELCOME)
                 .discountType(DiscountType.FIXED)
                 .discountValue(-1000L)
                 .build();
@@ -117,13 +117,13 @@ class CouponPolicyAdminControllerTest {
         CouponPolicyResponseDto policy1 = CouponPolicyResponseDto.builder()
                 .id(1L)
                 .name("정책1")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .build();
 
         CouponPolicyResponseDto policy2 = CouponPolicyResponseDto.builder()
                 .id(2L)
                 .name("정책2")
-                .comment(Comment.BIRTHDAY)
+                .couponType(CouponType.BIRTHDAY)
                 .build();
 
         when(couponPolicyService.findAll())
@@ -154,7 +154,7 @@ class CouponPolicyAdminControllerTest {
         CouponPolicyResponseDto responseDto = CouponPolicyResponseDto.builder()
                 .id(id)
                 .name("단건 조회 정책")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .build();
 
         when(couponPolicyService.findById(id)).thenReturn(responseDto);
@@ -205,7 +205,7 @@ class CouponPolicyAdminControllerTest {
     void handleValidationExceptionTest() throws Exception {
         CouponPolicyRequestDto requestDto = CouponPolicyRequestDto.builder()
                 .name("")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .build();

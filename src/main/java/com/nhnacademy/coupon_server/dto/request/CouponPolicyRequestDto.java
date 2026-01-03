@@ -1,6 +1,6 @@
 package com.nhnacademy.coupon_server.dto.request;
 
-import com.nhnacademy.coupon_server.entity.state.Comment;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -20,7 +20,7 @@ public class CouponPolicyRequestDto {
     private String name;
 
     @NotNull(message = "쿠폰 용도는 필수입니다.")
-    private Comment comment;
+    private CouponType couponType;
 
     @NotNull(message = "할인 유형은 필수입니다.")
     private DiscountType discountType;

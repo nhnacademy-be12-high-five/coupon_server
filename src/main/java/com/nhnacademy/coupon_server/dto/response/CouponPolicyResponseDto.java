@@ -3,8 +3,8 @@ package com.nhnacademy.coupon_server.dto.response;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.CouponPolicyBook;
 import com.nhnacademy.coupon_server.entity.CouponPolicyCategory;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,12 +17,12 @@ import java.util.List;
 public class CouponPolicyResponseDto {
     private Long id;
     private String name;
-    private Comment comment;
+    private CouponType couponType;
     private DiscountType discountType;
     private Long discountValue;
     private Long minOrderValue;
     private Long maxDiscountValue;
-    private CouponPolicyStatus status;
+    private String status;
     private List<Long> targetBookIds;
     private List<Long> targetCategoryIds;
 
@@ -36,12 +36,12 @@ public class CouponPolicyResponseDto {
         return CouponPolicyResponseDto.builder()
                 .id(policy.getId())
                 .name(policy.getName())
-                .comment(policy.getComment())
+                .couponType(policy.getCouponType())
                 .discountType(policy.getDiscountType())
                 .discountValue(policy.getDiscountValue())
                 .minOrderValue(policy.getMinOrderValue())
                 .maxDiscountValue(policy.getMaxDiscountValue())
-                .status(policy.getStatus())
+                .status(policy.isActive() ? "ACTIVE" : "INACTIVE")
                 .targetBookIds(bookIds)
                 .targetCategoryIds(categoryIds)
                 .build();

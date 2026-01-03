@@ -3,8 +3,8 @@ package com.nhnacademy.coupon_server.service;
 import com.nhnacademy.coupon_server.dto.request.CouponPolicyRequestDto;
 import com.nhnacademy.coupon_server.dto.response.CouponPolicyResponseDto;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.exception.CouponPolicyNotFoundException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
@@ -52,7 +52,7 @@ class CouponPolicyServiceTest {
     void setUp() {
         couponPolicyRequestDto = new CouponPolicyRequestDto();
         couponPolicyRequestDto.setName("신규 정책 테스트");
-        couponPolicyRequestDto.setComment(Comment.WELCOME);
+        couponPolicyRequestDto.setCouponType(CouponType.WELCOME);
         couponPolicyRequestDto.setDiscountType(DiscountType.PERCENTAGE);
         couponPolicyRequestDto.setDiscountValue(10L);
         couponPolicyRequestDto.setMinOrderValue(10000L);
@@ -63,7 +63,7 @@ class CouponPolicyServiceTest {
         mockPolicy = CouponPolicy.builder()
                 .id(1L)
                 .name(couponPolicyRequestDto.getName())
-                .comment(couponPolicyRequestDto.getComment())
+                .couponType(couponPolicyRequestDto.getCouponType())
                 .discountType(couponPolicyRequestDto.getDiscountType())
                 .discountValue(couponPolicyRequestDto.getDiscountValue())
                 .minOrderValue(couponPolicyRequestDto.getMinOrderValue())
@@ -86,7 +86,7 @@ class CouponPolicyServiceTest {
         Assertions.assertNotNull(responseDto);
         Assertions.assertEquals(1L, responseDto.getId());
         Assertions.assertEquals("신규 정책 테스트", responseDto.getName());
-        Assertions.assertEquals(Comment.WELCOME, responseDto.getComment());
+        Assertions.assertEquals(CouponType.WELCOME, responseDto.getCouponType());
     }
 
     @Test
@@ -113,14 +113,14 @@ class CouponPolicyServiceTest {
         CouponPolicy policy1 = CouponPolicy.builder()
                 .id(1L)
                 .name("정책1")
-                .comment(Comment.WELCOME)
+                .couponType(CouponType.WELCOME)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .build();
         CouponPolicy policy2 = CouponPolicy.builder()
                 .id(2L)
                 .name("정책2")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .discountType(DiscountType.PERCENTAGE)
                 .discountValue(10L)
                 .build();
@@ -177,7 +177,7 @@ class CouponPolicyServiceTest {
 
         verify(couponPolicyRepository, times(1)).findById(id);
         verify(couponPolicyRepository, never()).deleteById(id);
-        Assertions.assertEquals(CouponPolicyStatus.INACTIVE, mockPolicy.getStatus());
+        Assertions.assertEquals(false, mockPolicy.isActive());
     }
 
     @Test

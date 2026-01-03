@@ -1,7 +1,6 @@
 package com.nhnacademy.coupon_server.repository.coupon.impl;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponStatus;
 import com.nhnacademy.coupon_server.entity.state.CouponType;
@@ -10,7 +9,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -32,13 +30,13 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
     }
 
     @Override
-    public Page<Coupon> findIssuableCoupons(LocalDateTime now, CouponPolicyStatus status, CouponType couponType, Pageable pageable) {
+    public Page<Coupon> findIssuableCoupons(LocalDateTime now, boolean policyIsActive, CouponType couponType, Pageable pageable) {
         List<Coupon> content = jpaQueryFactory
                 .selectFrom(coupon)
                 .join(coupon.couponPolicy, couponPolicy).fetchJoin()
                 .where(
                         isIssuableDate(now),
-                        couponPolicy.status.eq(status),
+                        couponPolicy.isActive.eq(policyIsActive),
                         coupon.status.eq(CouponStatus.ACTIVE),
                         coupon.couponType.eq(couponType)
                 )
@@ -52,7 +50,7 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
                 .join(coupon.couponPolicy, couponPolicy)
                 .where(
                         isIssuableDate(now),
-                        couponPolicy.status.eq(status),
+                        couponPolicy.isActive.eq(policyIsActive),
                         coupon.status.eq(CouponStatus.ACTIVE),
                         coupon.couponType.eq(couponType)
                 );
@@ -60,14 +58,14 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
     }
 
     @Override
-    public List<Coupon> findCouponsForProduct(Long bookId, List<Long> categoryIds, CouponPolicyStatus status, LocalDateTime now) {
+    public List<Coupon> findCouponsForProduct(Long bookId, List<Long> categoryIds, boolean policyIsActive, LocalDateTime now) {
         return jpaQueryFactory
                 .selectFrom(coupon).distinct()
                 .join(coupon.couponPolicy, couponPolicy).fetchJoin()
                 .leftJoin(couponPolicy.usableBooks, couponPolicyBook)
                 .leftJoin(couponPolicy.usableCategories, couponPolicyCategory)
                 .where(
-                        couponPolicy.status.eq(status),
+                        couponPolicy.isActive.eq(policyIsActive),
                         isIssuableDate(now),
                         // (특정 책 OR 특정 카테고리 OR (책 조건 X AND 카테고리 조건 X))
                         isTargetBook(bookId)
@@ -78,14 +76,14 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
     }
 
     @Override
-    public List<Coupon> findSpecificCouponsForProduct(Long bookId, List<Long> categoryIds, CouponPolicyStatus status, LocalDateTime now) {
+    public List<Coupon> findSpecificCouponsForProduct(Long bookId, List<Long> categoryIds, boolean policyIsActive, LocalDateTime now) {
         return jpaQueryFactory
                 .selectFrom(coupon).distinct()
                 .join(coupon.couponPolicy, couponPolicy).fetchJoin()
                 .leftJoin(couponPolicy.usableBooks, couponPolicyBook)
                 .leftJoin(couponPolicy.usableCategories, couponPolicyCategory)
                 .where(
-                        couponPolicy.status.eq(status),
+                        couponPolicy.isActive.eq(policyIsActive),
                         isIssuableDate(now),
                         // (특정 책 OR 특정 카테고리) - 범용 제외
                         isTargetBook(bookId)
@@ -95,13 +93,13 @@ public class CouponRepositoryImpl implements CouponRepositoryCustom {
     }
 
     @Override
-    public List<Coupon> findCouponsByCommentAndStatus(Comment comment, CouponPolicyStatus status, Pageable pageable) {
+    public List<Coupon> findCouponsByTypeAndStatus(CouponType couponType, boolean policyIsActive, Pageable pageable) {
         return jpaQueryFactory
                 .selectFrom(coupon)
                 .join(coupon.couponPolicy, couponPolicy).fetchJoin()
                 .where(
-                        couponPolicy.comment.eq(comment),
-                        couponPolicy.status.eq(status)
+                        coupon.couponType.eq(couponType),
+                        couponPolicy.isActive.eq(policyIsActive)
                 )
                 .orderBy(coupon.id.desc())
                 .offset(pageable.getOffset())

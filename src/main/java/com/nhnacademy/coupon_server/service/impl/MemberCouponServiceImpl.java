@@ -10,8 +10,8 @@ import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
@@ -59,19 +59,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(CouponNotFoundException::new);
 
-        if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            throw new DuplicateCouponException();
-        }
-
-        MemberCoupon memberCoupon = MemberCoupon.builder()
-                .coupon(coupon)
-                .userId(userId)
-                .status(Status.ISSUED)
-                .issueAt(LocalDateTime.now())
-                .expiredAt(dateCalculator.calculateExpiration(coupon))
-                .build();
-
-        memberCouponRepository.save(memberCoupon);
+        issueCouponInternal(userId, coupon);
     }
 
     @Override
@@ -84,10 +72,10 @@ public class MemberCouponServiceImpl implements MemberCouponService {
 
         Coupon coupon = getCouponOrThrow(couponId);
 
-        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+        if (!coupon.getCouponPolicy().isActive()) {
             throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 발급할 수 없습니다.");
         }
-        validateDuplicateAndSave(userId, coupon);
+        issueCouponInternal(userId, coupon);
     }
 
     @Override
@@ -115,7 +103,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 throw new DuplicateCouponException();
             }
         }
-        saveMemberCoupon(userId, coupon);
+        issueCouponInternal(userId, coupon);
     }
 
     @Override
@@ -198,35 +186,12 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     @Transactional
     public void cancelCouponUsage(Long userId, MemberCouponCancelRequestDto requestDto) {
         MemberCoupon memberCoupon = findAndValidateOwner(requestDto.getCouponId(), userId);
-
         memberCoupon.cancel();
     }
 
     private  Coupon getCouponOrThrow(Long couponId) {
         return couponRepository.findById(couponId)
                 .orElseThrow(CouponNotFoundException::new);
-    }
-
-    private void validateDuplicateAndSave(Long userId, Coupon coupon) {
-        if (memberCouponRepository.existsByUserIdAndCouponId(userId, coupon.getId())) {
-            throw new DuplicateCouponException();
-        }
-        try {
-            saveMemberCoupon(userId, coupon);
-        }catch (DataIntegrityViolationException e) {
-            throw new DuplicateCouponException();
-        }
-    }
-
-    private void saveMemberCoupon(Long userId, Coupon coupon) {
-        MemberCoupon memberCoupon = MemberCoupon.builder()
-                .coupon(coupon)
-                .userId(userId)
-                .status(Status.ISSUED)
-                .issueAt(LocalDateTime.now())
-                .expiredAt(dateCalculator.calculateExpiration(coupon))
-                .build();
-        memberCouponRepository.save(memberCoupon);
     }
 
     private MemberCoupon findAndValidateOwner(Long memberCouponId, Long userId) {
@@ -244,7 +209,7 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         if (coupon.getIssuedEndAt() != null && now.isAfter(coupon.getIssuedEndAt())) {
             throw new IllegalArgumentException("발급 기간이 지났습니다.");
         }
-        if (coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+        if (coupon.getCouponPolicy().isActive()) {
             throw new IllegalStateException("해당 쿠폰의 정책이 중단되어 더 이상 발급받을 수 없습니다.");
         }
     }
@@ -257,21 +222,20 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(CouponNotFoundException::new);
 
-        if (memberCouponRepository.existsByUserIdAndCouponId(memberId, couponId)) {
+        try {
+            issueCouponInternal(memberId, coupon);
+        } catch (DuplicateCouponException e) {
             log.warn("이미 생일 쿠폰을 발급받은 회원입니다. User: {}", memberId);
-            return;
         }
-
-        saveMemberCoupon(memberId, coupon);
     }
 
     @Override
     @Transactional
     public void issueWelcomeCoupon(Long memberId) {
         log.info("웰컴 쿠폰 자동 지급 시도 - User: {}", memberId);
-        List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(
-                Comment.WELCOME,
-                CouponPolicyStatus.ACTIVE,
+        List<Coupon> coupons = couponRepository.findCouponsByTypeAndStatus(
+                CouponType.WELCOME,
+                true,
                 PageRequest.of(0, 1)
         );
 
@@ -281,12 +245,11 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         }
         Coupon welcomeCoupon = coupons.get(0);
 
-        if (memberCouponRepository.existsByUserIdAndCouponId(memberId, welcomeCoupon.getId())) {
+        try {
+            issueCouponInternal(memberId, welcomeCoupon);
+        } catch (DuplicateCouponException e) {
             log.info("이미 웰컴 쿠폰을 받은 회원입니다. User: {}", memberId);
-            return;
         }
-
-        saveMemberCoupon(memberId, welcomeCoupon);
     }
 
     private RedisScript<Long> issueCouponScript() {
@@ -294,5 +257,23 @@ public class MemberCouponServiceImpl implements MemberCouponService {
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/issue-coupon.lua")));
         script.setResultType(Long.class);
         return script;
+    }
+
+    private void issueCouponInternal(Long userId, Coupon coupon) {
+        if (memberCouponRepository.existsByUserIdAndCouponId(userId, coupon.getId())) {
+            throw new DuplicateCouponException();
+        }
+        try {
+            MemberCoupon memberCoupon = MemberCoupon.builder()
+                    .coupon(coupon)
+                    .userId(userId)
+                    .status(Status.ISSUED)
+                    .issueAt(LocalDateTime.now())
+                    .expiredAt(dateCalculator.calculateExpiration(coupon))
+                    .build();
+            memberCouponRepository.save(memberCoupon);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateCouponException();
+        }
     }
 }

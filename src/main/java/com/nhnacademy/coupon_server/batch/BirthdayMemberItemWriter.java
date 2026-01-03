@@ -1,8 +1,8 @@
 package com.nhnacademy.coupon_server.batch;
 
 import com.nhnacademy.coupon_server.entity.Coupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +17,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Slf4j
 @StepScope
@@ -51,10 +53,10 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
     }
 
     private Long fetchBirthdayCouponId() {
-        List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(
-                Comment.BIRTHDAY,
-                CouponPolicyStatus.ACTIVE,
-                PageRequest.of(0, 1, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"))
+        List<Coupon> coupons = couponRepository.findCouponsByTypeAndStatus(
+                CouponType.BIRTHDAY,
+                true,
+                PageRequest.of(0, 1, Sort.by(DESC, "id"))
         );
         if (coupons.isEmpty()) {
             return null;

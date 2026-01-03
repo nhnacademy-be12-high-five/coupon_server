@@ -176,7 +176,7 @@ class CouponServiceTest {
         List<Coupon> coupons = List.of(limitedCoupon, unlimitedCoupon);
         Page<Coupon> couponPage = new PageImpl<>(coupons);
 
-        when(couponRepository.findIssuableCoupons(any(), eq(CouponPolicyStatus.ACTIVE), eq(CouponType.NORMAL), eq(pageable)))
+        when(couponRepository.findIssuableCoupons(any(), eq(true), eq(CouponType.NORMAL), eq(pageable)))
                 .thenReturn(couponPage);
 
         CouponCountDto countDto = mock(CouponCountDto.class);
@@ -205,23 +205,23 @@ class CouponServiceTest {
         LocalDateTime now = LocalDateTime.now();
 
         // 1. [ACTIVE] 정상 발급 가능
-        Coupon activeCoupon = createMockCoupon(1L, "정상 쿠폰", CouponPolicyStatus.ACTIVE,
+        Coupon activeCoupon = createMockCoupon(1L, "정상 쿠폰", true,
                 now.minusDays(1), now.plusDays(1), 100);
 
         // 2. [WAITING] 발급 대기
-        Coupon waitingCoupon = createMockCoupon(2L, "대기 쿠폰", CouponPolicyStatus.ACTIVE,
+        Coupon waitingCoupon = createMockCoupon(2L, "대기 쿠폰", true,
                 now.plusDays(1), now.plusDays(7), 100);
 
         // 3. [EXPIRED] 기간 만료
-        Coupon expiredCoupon = createMockCoupon(3L, "만료 쿠폰", CouponPolicyStatus.ACTIVE,
+        Coupon expiredCoupon = createMockCoupon(3L, "만료 쿠폰", true,
                 now.minusDays(10), now.minusDays(1), 100);
 
         // 4. [SOLD_OUT] 소진
-        Coupon soldOutCoupon = createMockCoupon(4L, "소진 쿠폰", CouponPolicyStatus.ACTIVE,
+        Coupon soldOutCoupon = createMockCoupon(4L, "소진 쿠폰", true,
                 now.minusDays(1), now.plusDays(1), 10);
 
         // 5. [INACTIVE] 정책 비활성화
-        Coupon inactiveCoupon = createMockCoupon(5L, "비활성 쿠폰", CouponPolicyStatus.INACTIVE,
+        Coupon inactiveCoupon = createMockCoupon(5L, "비활성 쿠폰", false,
                 now.minusDays(1), now.plusDays(1), 100);
 
         List<Coupon> couponList = List.of(activeCoupon, waitingCoupon, expiredCoupon, soldOutCoupon, inactiveCoupon);
@@ -246,10 +246,10 @@ class CouponServiceTest {
         assertEquals("INACTIVE", content.get(4).getStatus());
     }
 
-    private Coupon createMockCoupon(Long id, String name, CouponPolicyStatus policyStatus,
+    private Coupon createMockCoupon(Long id, String name, boolean policyIsActive,
                                     LocalDateTime start, LocalDateTime end, Integer count) {
         CouponPolicy policy = CouponPolicy.builder()
-                .status(policyStatus)
+                .isActive(policyIsActive)
                 .build();
 
         return Coupon.builder()
@@ -270,21 +270,21 @@ class CouponServiceTest {
                 .id(1L)
                 .couponName("정상 쿠폰")
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .build();
 
         Coupon overIssuedCoupon = Coupon.builder()
                 .id(2L)
                 .couponName("초과 발급된 쿠폰")
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .build();
 
         Coupon unlimitedCoupon = Coupon.builder()
                 .id(3L)
                 .couponName("무제한 쿠폰")
                 .issueCount(null)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .build();
 
         when(couponRepository.findAll()).thenReturn(List.of(normalCoupon, overIssuedCoupon, unlimitedCoupon));

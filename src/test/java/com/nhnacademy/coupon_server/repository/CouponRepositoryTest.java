@@ -38,7 +38,7 @@ class CouponRepositoryTest {
     void setUp() {
         couponPolicy = CouponPolicy.builder()
                 .name("테스트 정책")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .minOrderValue(5000L)
@@ -83,7 +83,7 @@ class CouponRepositoryTest {
 
         Pageable pageable = PageRequest.of(0, 10);
 
-        Page<Coupon> result = couponRepository.findIssuableCoupons(now, CouponPolicyStatus.ACTIVE, CouponType.NORMAL, pageable);
+        Page<Coupon> result = couponRepository.findIssuableCoupons(now, true, CouponType.NORMAL, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getCouponName()).isEqualTo("발급 가능 쿠폰");

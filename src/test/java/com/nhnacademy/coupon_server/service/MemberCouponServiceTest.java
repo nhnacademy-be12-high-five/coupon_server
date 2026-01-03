@@ -11,8 +11,8 @@ import com.nhnacademy.coupon_server.dto.response.MemberCouponResponseDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
@@ -86,7 +86,7 @@ public class MemberCouponServiceTest {
 
         Coupon coupon = Coupon.builder()
                 .id(couponId)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
@@ -112,7 +112,7 @@ public class MemberCouponServiceTest {
 
         Coupon coupon = Coupon.builder()
                 .id(couponId)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
@@ -138,7 +138,7 @@ public class MemberCouponServiceTest {
         Coupon coupon = Coupon.builder()
                 .id(couponId)
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
                 .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .build();
@@ -166,7 +166,7 @@ public class MemberCouponServiceTest {
         Coupon coupon = Coupon.builder()
                 .id(couponId)
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
                 .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .build();
@@ -204,7 +204,7 @@ public class MemberCouponServiceTest {
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
                 .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .build();
 
         when(couponRepository.findById(couponId)).thenReturn(Optional.of(coupon));
@@ -226,7 +226,7 @@ public class MemberCouponServiceTest {
         Coupon coupon = Coupon.builder()
                 .id(couponId)
                 .issueCount(100)
-                .couponPolicy(CouponPolicy.builder().status(CouponPolicyStatus.ACTIVE).build())
+                .couponPolicy(CouponPolicy.builder().isActive(true).build())
                 .issuedStartAt(LocalDateTime.now().minusDays(1))
                 .issuedEndAt(LocalDateTime.now().plusDays(1))
                 .build();
@@ -250,7 +250,7 @@ public class MemberCouponServiceTest {
         Long userId = 1L;
         Coupon welcomeCoupon = Coupon.builder().id(100L).couponName("Welcome").build();
 
-        when(couponRepository.findCouponsByCommentAndStatus(eq(Comment.WELCOME), eq(CouponPolicyStatus.ACTIVE), any(Pageable.class)))
+        when(couponRepository.findCouponsByTypeAndStatus(eq(CouponType.WELCOME), eq(true), any(Pageable.class)))
                 .thenReturn(List.of(welcomeCoupon));
         when(memberCouponRepository.existsByUserIdAndCouponId(userId, 100L)).thenReturn(false);
         when(dateCalculator.calculateExpiration(welcomeCoupon)).thenReturn(LocalDateTime.now().plusDays(30));

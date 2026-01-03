@@ -5,7 +5,7 @@ import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
@@ -44,7 +44,7 @@ class MemberCouponRepositoryTest {
     void setUp() {
         CouponPolicy couponPolicy = CouponPolicy.builder()
                 .name("테스트 정책")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
                 .minOrderValue(5000L)

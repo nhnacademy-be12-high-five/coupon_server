@@ -1,16 +1,13 @@
 package com.nhnacademy.coupon_server.entity;
 
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
 
-import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -29,10 +26,8 @@ public class CouponPolicy {
     @Setter
     private String name;
 
-    @Column(name = "comment", nullable = false)
     @Enumerated(EnumType.STRING)
-    @Setter
-    private Comment comment;
+    private CouponType couponType;
 
     @Column(name = "discount_type", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -51,11 +46,9 @@ public class CouponPolicy {
     @Setter
     private Long maxDiscountValue;
 
-    @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Column(name = "is_active", nullable = false)
     @Builder.Default
-    @Setter
-    private CouponPolicyStatus status = CouponPolicyStatus.ACTIVE;
+    private boolean isActive = true;
 
     @OneToMany(mappedBy = "couponPolicy", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter
@@ -69,23 +62,14 @@ public class CouponPolicy {
     private Set<CouponPolicyCategory> usableCategories = new HashSet<>();
 
     public void disable() {
-        this.status = CouponPolicyStatus.INACTIVE;
+        this.isActive = false;
     }
 
     public long calculateDiscountAmount(long orderPrice) {
         if (this.minOrderValue != null && orderPrice < this.minOrderValue) {
             throw new IllegalArgumentException("최소 주문 금액(" + this.minOrderValue + "원)을 충족하지 못했습니다.");
         }
-        long discountAmount = 0;
-
-        if (this.discountType == DiscountType.FIXED) {
-            discountAmount = this.discountValue;
-        } else if (this.discountType == DiscountType.PERCENTAGE) {
-            discountAmount = java.math.BigDecimal.valueOf(orderPrice)
-                    .multiply(java.math.BigDecimal.valueOf(this.discountValue))
-                    .divide(java.math.BigDecimal.valueOf(100), RoundingMode.DOWN)
-                    .longValue();
-        }
+        long discountAmount = this.discountType.calculate(orderPrice, this.discountValue);
 
         if (this.maxDiscountValue != null && discountAmount > this.maxDiscountValue) {
             discountAmount = this.maxDiscountValue;

@@ -39,7 +39,7 @@ public class CouponResponseDto {
         }
 
         String status;
-        if (coupon.getStatus() == CouponStatus.INACTIVE || coupon.getCouponPolicy().getStatus() == CouponPolicyStatus.INACTIVE) {
+        if (coupon.getStatus() == CouponStatus.INACTIVE || coupon.getCouponPolicy().isActive()) {
             status = "INACTIVE";
         } else if (coupon.getIssuedStartAt() != null && now.isBefore(coupon.getIssuedStartAt())) {
             status = "WAITING";
@@ -63,7 +63,7 @@ public class CouponResponseDto {
                 .remainingCount(remaining)
                 .couponType(coupon.getCouponType().toString())
                 .status(status)
-                .policyStatus(coupon.getCouponPolicy().getStatus().name())
+                .policyStatus(coupon.getCouponPolicy().isActive() ? "ACTIVE" : "INACTIVE")
                 .build();
     }
 }

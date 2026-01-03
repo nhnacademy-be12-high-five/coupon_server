@@ -3,8 +3,8 @@ package com.nhnacademy.coupon_server.config;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.CouponPolicy;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.CouponPolicyStatus;
+import com.nhnacademy.coupon_server.entity.state.CouponType;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
@@ -65,10 +65,10 @@ class CouponDeleteBatchConfigTest {
     void deleteExpiredCouponJobSuccess() throws Exception {
         CouponPolicy policy = CouponPolicy.builder()
                 .name("테스트 정책")
-                .comment(Comment.EVENT)
+                .couponType(CouponType.NORMAL)
                 .discountType(DiscountType.FIXED)
                 .discountValue(1000L)
-                .status(CouponPolicyStatus.ACTIVE)
+                .isActive(true)
                 .build();
         couponPolicyRepository.save(policy);
 
