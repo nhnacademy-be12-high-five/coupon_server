@@ -176,6 +176,9 @@ public class MemberCouponServiceTest {
         when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString()))
                 .thenReturn(-1L);
 
+        when(memberCouponRepository.existsByUserIdAndCouponId(userId, couponId))
+                .thenReturn(true);
+
         Assertions.assertThrows(DuplicateCouponException.class, () ->
                 memberCouponService.issueCouponByUser(userId, couponId)
         );
