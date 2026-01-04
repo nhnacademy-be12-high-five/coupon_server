@@ -4,6 +4,8 @@ import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,5 +21,8 @@ public interface MemberCouponRepository extends JpaRepository<MemberCoupon, Long
     Optional<MemberCoupon> findByUserIdAndCouponId(Long userId, Long couponId);
 
     List<MemberCoupon> findAllByCouponCouponPolicyIdAndStatus(Long policyId, Status status);
+
+    @Query("SELECT mc.userId FROM MemberCoupon mc WHERE mc.coupon.id = :couponId AND mc.userId IN :userIds")
+    List<Long> findUserIdsByCouponIdAndUserIdIn(@Param("couponId") Long couponId, @Param("userIds") List<Long> userIds);
 
 }
