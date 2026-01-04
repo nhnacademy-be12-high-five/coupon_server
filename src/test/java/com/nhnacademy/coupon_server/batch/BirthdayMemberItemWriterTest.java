@@ -1,7 +1,9 @@
 package com.nhnacademy.coupon_server.batch;
 
+import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
+import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.item.Chunk;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -20,16 +23,22 @@ import static org.mockito.Mockito.*;
 class BirthdayMemberItemWriterTest {
 
     @Mock
-    private MemberCouponService memberCouponService;
+    private MemberCouponRepository memberCouponRepository;
+
+    @Mock
+    private MemberCouponJdbcRepository memberCouponJdbcRepository;
 
     @Mock
     private CouponRepository couponRepository;
+
+    @Mock
+    private CouponDateCalculator dateCalculator;
 
     @InjectMocks
     private BirthdayMemberItemWriter writer;
 
     @Test
-    @DisplayName("Writer 실행 시 쿠폰 정책을 한 번만 조회하고(캐싱), 청크 내 모든 회원에게 쿠폰을 발급해야 한다")
+    @DisplayName("Writer 실행 시 쿠폰 정책을 한 번만 조회하고(캐싱), 청크 내 모든 회원에게 Bulk Insert로 쿠폰을 발급해야 한다")
     void writeSuccessWithCaching() {
         Chunk<Long> chunk = new Chunk<>(List.of(100L, 101L, 102L));
         Coupon birthdayCoupon = Coupon.builder().id(999L).build();
@@ -37,13 +46,25 @@ class BirthdayMemberItemWriterTest {
         when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any()))
                 .thenReturn(List.of(birthdayCoupon));
 
+        when(memberCouponRepository.findUserIdsByCouponIdAndUserIdIn(any(), any()))
+                .thenReturn(List.of());
+
+        when(dateCalculator.calculateExpiration(any())).thenReturn(LocalDateTime.now().plusDays(30));
+
+        writer.beforeStep(mock(org.springframework.batch.core.StepExecution.class)); // 캐시 초기화
         writer.write(chunk);
 
         verify(couponRepository, times(1)).findCouponsByCommentAndStatus(any(), any(), any());
 
-        verify(memberCouponService, times(1)).issueBirthdayCoupon(100L, 999L);
-        verify(memberCouponService, times(1)).issueBirthdayCoupon(101L, 999L);
-        verify(memberCouponService, times(1)).issueBirthdayCoupon(102L, 999L);
+        verify(memberCouponJdbcRepository, times(1)).batchInsertMemberCoupons(argThat(list -> {
+            // 저장하려는 리스트에 3명의 정보가 모두 들어있는지 검증
+            boolean sizeMatch = list.size() == 3;
+            boolean allCorrectUser = list.stream()
+                    .map(mc -> mc.getUserId())
+                    .allMatch(id -> List.of(100L, 101L, 102L).contains(id));
+
+            return sizeMatch && allCorrectUser;
+        }));
     }
 
     @Test
@@ -55,9 +76,19 @@ class BirthdayMemberItemWriterTest {
         when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any()))
                 .thenReturn(List.of(coupon));
 
+        // -------------------------------------------------------
+        // 1. 첫 번째 실행 (First Execution)
+        // -------------------------------------------------------
+        writer.beforeStep(mock(org.springframework.batch.core.StepExecution.class));
+
         writer.write(chunk);
+
         verify(couponRepository, times(1)).findCouponsByCommentAndStatus(any(), any(), any());
 
+
+        // -------------------------------------------------------
+        // 2. 두 번째 실행 (Second Execution - 재시도 또는 다음 스텝 시뮬레이션)
+        // -------------------------------------------------------
         writer.beforeStep(mock(org.springframework.batch.core.StepExecution.class));
 
         writer.write(chunk);
@@ -67,14 +98,13 @@ class BirthdayMemberItemWriterTest {
 
     @Test
     @DisplayName("활성화된 생일 쿠폰 정책을 찾을 수 없으면 IllegalStateException 발생")
-    void write_ThrowsException_WhenNoPolicyFound() {
-        Chunk<Long> chunk = new Chunk<>(List.of(100L));
+    void beforeStep_ThrowsException_WhenNoPolicyFound() { // 메서드명 변경 권장 (write -> beforeStep)
 
         when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any()))
-                .thenReturn(List.of());
+                .thenReturn(List.of()); // 빈 리스트 반환
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
-                writer.write(chunk)
+                writer.beforeStep(null)
         );
     }
 }
