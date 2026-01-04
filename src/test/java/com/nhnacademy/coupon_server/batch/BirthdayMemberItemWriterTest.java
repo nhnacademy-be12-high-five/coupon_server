@@ -4,7 +4,7 @@ import com.nhnacademy.coupon_server.calculator.CouponDateCalculator;
 import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
 import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
-import com.nhnacademy.coupon_server.service.MemberCouponService;
+import com.nhnacademy.coupon_server.repository.membercoupon.impl.MemberCouponJdbcRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,5 +106,37 @@ class BirthdayMemberItemWriterTest {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
                 writer.beforeStep(null)
         );
+    }
+
+    @Test
+    @DisplayName("모든 유저가 이미 쿠폰을 발급받은 경우, Bulk Insert를 수행하지 않고 건너뛰어야 한다")
+    void write_Skips_WhenAllUsersAlreadyIssued() {
+        // Given
+        Chunk<Long> chunk = new Chunk<>(List.of(100L, 101L, 102L));
+        Coupon birthdayCoupon = Coupon.builder().id(999L).build();
+
+        // 1. beforeStep: 쿠폰 정책 조회 Mocking
+        when(couponRepository.findCouponsByCommentAndStatus(any(), any(), any()))
+                .thenReturn(List.of(birthdayCoupon));
+
+        // 2. write: 이미 발급된 유저 조회 Mocking (청크의 모든 유저가 이미 발급받았다고 가정)
+        when(memberCouponRepository.findUserIdsByCouponIdAndUserIdIn(any(), any()))
+                .thenReturn(List.of(100L, 101L, 102L));
+
+        // beforeStep 실행하여 cachedBirthdayCoupon 설정
+        writer.beforeStep(mock(org.springframework.batch.core.StepExecution.class));
+
+        // When
+        writer.write(chunk);
+
+        // Then
+        // 1. 이미 발급된 유저 조회가 수행되었는지 확인
+        verify(memberCouponRepository, times(1)).findUserIdsByCouponIdAndUserIdIn(eq(999L), any());
+
+        // 2. 핵심 검증: 타겟 유저가 없으므로 DB Insert가 절대 호출되지 않아야 함 (never)
+        verify(memberCouponJdbcRepository, never()).batchInsertMemberCoupons(any());
+
+        // 3. 만료일 계산 로직도 수행되지 않아야 함 (Skip 로직 이후에 위치하므로)
+        verify(dateCalculator, never()).calculateExpiration(any());
     }
 }

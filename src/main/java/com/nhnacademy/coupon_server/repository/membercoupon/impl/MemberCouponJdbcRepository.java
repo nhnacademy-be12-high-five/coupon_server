@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon_server.batch;
+package com.nhnacademy.coupon_server.repository.membercoupon.impl;
 
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import lombok.RequiredArgsConstructor;
