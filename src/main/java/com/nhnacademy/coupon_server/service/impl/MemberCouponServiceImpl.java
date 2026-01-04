@@ -16,7 +16,7 @@ import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.exception.CouponNotFoundException;
 import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
-import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
+import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.MemberCouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

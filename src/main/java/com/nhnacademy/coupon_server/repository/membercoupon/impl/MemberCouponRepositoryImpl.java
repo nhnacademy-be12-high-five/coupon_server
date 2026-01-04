@@ -1,10 +1,10 @@
-package com.nhnacademy.coupon_server.repository.memberCoupon.impl;
+package com.nhnacademy.coupon_server.repository.membercoupon.impl;
 
 import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.dto.response.CouponCountVo;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Status;
-import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepositoryCustom;
+import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepositoryCustom;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
