@@ -21,7 +21,7 @@ import com.nhnacademy.coupon_server.exception.DuplicateCouponException;
 import com.nhnacademy.coupon_server.exception.ErrorCode;
 import com.nhnacademy.coupon_server.exception.GlobalExceptionHandler;
 import com.nhnacademy.coupon_server.repository.coupon.CouponRepository;
-import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
+import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import com.nhnacademy.coupon_server.service.impl.MemberCouponServiceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

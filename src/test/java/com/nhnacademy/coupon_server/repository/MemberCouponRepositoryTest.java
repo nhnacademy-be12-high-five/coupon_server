@@ -8,7 +8,7 @@ import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.DiscountType;
 import com.nhnacademy.coupon_server.entity.state.Status;
-import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
+import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

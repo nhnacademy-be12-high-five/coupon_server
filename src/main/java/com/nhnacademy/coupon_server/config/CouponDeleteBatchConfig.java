@@ -2,7 +2,7 @@ package com.nhnacademy.coupon_server.config;
 
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
 import com.nhnacademy.coupon_server.entity.state.Status;
-import com.nhnacademy.coupon_server.repository.memberCoupon.MemberCouponRepository;
+import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

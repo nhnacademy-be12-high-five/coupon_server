@@ -1,4 +1,4 @@
-package com.nhnacademy.coupon_server.repository.memberCoupon;
+package com.nhnacademy.coupon_server.repository.membercoupon;
 
 import com.nhnacademy.coupon_server.dto.response.CouponCountDto;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
