@@ -1,6 +1,8 @@
 package com.nhnacademy.coupon_server.config;
 
+import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
+import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import jakarta.persistence.EntityManagerFactory;
@@ -17,6 +19,7 @@ import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDateTime;
@@ -29,6 +32,7 @@ public class CouponDeleteBatchConfig {
 
     private final EntityManagerFactory entityManagerFactory;
     private final MemberCouponRepository memberCouponRepository;
+    private final StringRedisTemplate redisTemplate;
     private static final int CHUNK_SIZE = 1000;
 
     @Bean
@@ -55,7 +59,10 @@ public class CouponDeleteBatchConfig {
                 .name("expiredOrUsedCouponReader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(CHUNK_SIZE)
-                .queryString("SELECT mc FROM MemberCoupon mc WHERE mc.status = :usedStatus OR (mc.status = :issuedStatus AND mc.expiredAt < :now)")
+                .queryString("SELECT mc FROM MemberCoupon mc " +
+                        "JOIN FETCH mc.coupon c " +
+                        "JOIN FETCH c.couponPolicy cp " +
+                        "WHERE mc.status = :usedStatus OR (mc.status = :issuedStatus AND mc.expiredAt < :now)")
                 .parameterValues(Map.of(
                         "usedStatus", Status.USED,
                         "issuedStatus", Status.ISSUED,
@@ -68,7 +75,24 @@ public class CouponDeleteBatchConfig {
     public ItemWriter<MemberCoupon> couponDeleteWriter() {
         return items -> {
             log.info("삭제 대상 쿠폰 {}건 삭제 진행", items.size());
+            for (MemberCoupon coupon : items) {
+                if (coupon.getStatus().equals(Status.USED)) {
+                    restoreStockIfApplicable(coupon.getCoupon());
+                }
+            }
             memberCouponRepository.deleteAll(items);
         };
+    }
+
+    private void restoreStockIfApplicable(Coupon coupon) {
+        if (coupon.getIssueCount() == null) {
+            return;
+        }
+        Comment comment = coupon.getCouponPolicy().getComment();
+        if (comment == Comment.WELCOME || comment == Comment.BIRTHDAY) {
+            String countKey = "coupon:count" + coupon.getId();
+            redisTemplate.opsForValue().increment(countKey);
+            log.debug("만료 쿠폰 재고 복구 - CouponId: {}, Type: {}", coupon.getId(), comment);
+        }
     }
 }
