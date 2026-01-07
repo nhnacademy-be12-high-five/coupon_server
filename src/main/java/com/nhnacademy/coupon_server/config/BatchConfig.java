@@ -30,38 +30,42 @@ public class BatchConfig {
     @Value("${batch.retry.max-interval:10000}") private long retryMaxInterval;
     @Value("${batch.retry.max-attempts:3}") private int retryMaxAttempts;
 
+    // Reader 빈 등록
     @Bean
     @StepScope
     public BirthdayMemberItemReader birthdayMemberItemReader() {
         return new BirthdayMemberItemReader(memberServiceClient, CHUNK_SIZE);
     }
 
+    // Job 등록 (배치 작업의 단위)
     @Bean
     public Job birthdayCouponJob(JobRepository jobRepository, Step birthdayCouponStep) {
         return new JobBuilder("birthdayCouponJob", jobRepository)
-                .start(birthdayCouponStep)
+                .start(birthdayCouponStep) // 시작 Step 설정
                 .build();
     }
 
+    // Step 등록 (실제 처리 단계)
     @Bean
     public Step birthdayCouponStep(JobRepository jobRepository,
                                    PlatformTransactionManager transactionManager,
                                    BirthdayMemberItemReader birthdayMemberItemReader) {
 
+        // 재시도 대기 시간 정책 설정
         ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
-        backOffPolicy.setInitialInterval(retryInitialInterval); // 최초 1초 대기
-        backOffPolicy.setMultiplier(retryMultiplier);        // 2배씩 증가
-        backOffPolicy.setMaxInterval(retryMaxInterval);    // 최대 10초까지 대기
+        backOffPolicy.setInitialInterval(retryInitialInterval); // 최초 대기 시간 (예: 1초)
+        backOffPolicy.setMultiplier(retryMultiplier);        // 대기 시간 증가 배수 (예: 2배)
+        backOffPolicy.setMaxInterval(retryMaxInterval);    // 최대 대기 시간 (예: 10초)
 
         return new StepBuilder("birthdayCouponStep", jobRepository)
-                .<Long,Long>chunk(CHUNK_SIZE, transactionManager)
-                .reader(birthdayMemberItemReader)
-                .writer(birthdayMemberItemWriter)
-                .faultTolerant()
-                .retryLimit(retryMaxAttempts)
-                .retry(FeignException.class)
-                .retry(SocketTimeoutException.class)
-                .backOffPolicy(backOffPolicy)
+                .<Long,Long>chunk(CHUNK_SIZE, transactionManager) // Chunk 기반 처리 설정 (입력 Long -> 출력 Long)
+                .reader(birthdayMemberItemReader) // Reader 설정
+                .writer(birthdayMemberItemWriter) // Writer 설정
+                .faultTolerant() // 결함 허용 모드 활성화
+                .retryLimit(retryMaxAttempts) // 최대 재시도 횟수 설정
+                .retry(FeignException.class) // 재시도할 예외 1: 외부 API 호출 에러
+                .retry(SocketTimeoutException.class) // 재시도할 예외 2: 타임아웃
+                .backOffPolicy(backOffPolicy) // 위에서 설정한 백오프 정책 적용
                 .build();
     }
 }

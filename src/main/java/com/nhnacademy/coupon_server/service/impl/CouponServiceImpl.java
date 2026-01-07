@@ -56,7 +56,6 @@ public class CouponServiceImpl implements CouponService {
                 .couponName(couponRequestDto.getCouponName())
                 .description(couponRequestDto.getDescription())
                 .issueCount(couponRequestDto.getIssueCount())
-                .issueCount(couponRequestDto.getIssueCount())
                 .issuedStartAt(couponRequestDto.getIssueStartAt())
                 .issuedEndAt(couponRequestDto.getIssueEndAt())
                 .validPeriodDate(couponRequestDto.getValidPeriodDate())
@@ -101,7 +100,6 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<CouponResponseDto> findAll(Pageable pageable){
         Page<Coupon> couponPage = couponRepository.findAll(pageable);
         if (couponPage.isEmpty()){
@@ -193,7 +191,7 @@ public class CouponServiceImpl implements CouponService {
 
         String countKey = COUPON_COUNT_KEY_PREFIX + coupon.getId();
         // 키가 없을 때만 복구 (이미 있으면 기존 수량 유지)
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(countKey))) {
+        if (!redisTemplate.hasKey(countKey)) {
             long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
             long remainingCount = Math.max(0, coupon.getIssueCount() - issuedCount);
 

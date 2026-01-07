@@ -95,10 +95,13 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     public void issueCouponByUser(Long userId, Long couponId) {
         log.info("사용자 쿠폰 발급 요청 - Coupon: {}, User: {}", couponId, userId);
 
+        // 쿠폰 정보 조회 (없으면 예외)
         Coupon coupon = getCouponOrThrow(couponId);
 
+        // 발급 가능 기간 및 상태 검증
         validateCouponIssuance(coupon);
 
+        // 선착순/수량 제한 쿠폰인 경우 Redis를 통한 동시성 제어 수행
         if (coupon.getIssueCount() != null) {
             String countKey = "coupon:count:" + couponId;
             String issuedUsersKey = "coupon:issued:" + couponId + ":users";
@@ -112,12 +115,14 @@ public class MemberCouponServiceImpl implements MemberCouponService {
                 throw new IllegalStateException("쿠폰이 모두 소진되었습니다.");
             }
             if (result == -1) {
+                // 혹시 모를 Redis-DB 데이터 불일치 확인 (DB에도 있는지 더블 체크)
                 if (memberCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
                     throw new DuplicateCouponException();
                 }
                 log.warn("Redis 불일치 감지: Redis 발급 이력 있음 / DB 없음 -> 재저장 시도 (User: {}, Coupon: {})", userId, couponId);
             }
         }
+        // Redis 통과 후 DB에 최종 저장 (실패 시 트랜잭션 롤백됨)
         saveMemberCoupon(userId, coupon);
     }
 
@@ -185,17 +190,10 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     @Override
     @Transactional
     public void useCoupon(Long userId, MemberCouponUseRequestDto requestDto) {
+        // 쿠폰 소유자 검증 및 조회
        MemberCoupon memberCoupon = findAndValidateOwner(requestDto.getCouponId(), userId);
+        // 쿠폰 사용 상태로 변경 (Dirty Checking으로 DB 업데이트)
        memberCoupon.use(requestDto.getOrderId());
-       Coupon coupon = memberCoupon.getCoupon();
-       if (coupon.getIssueCount() != null) {
-           Comment couponType = coupon.getCouponPolicy().getComment();
-           if (couponType == Comment.BIRTHDAY || couponType == Comment.WELCOME) {
-               String countKey = "coupon:count:" + coupon.getId();
-               redisTemplate.opsForValue().increment(countKey);
-               log.info("쿠폰 사용으로 인한 재고 복구 완료 - CouponId: {}, Type: {}", coupon.getId(), couponType);
-           }
-       }
     }
 
     // [수정됨] 쿠폰 사용 취소

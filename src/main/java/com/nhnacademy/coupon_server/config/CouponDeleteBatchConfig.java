@@ -1,8 +1,6 @@
 package com.nhnacademy.coupon_server.config;
 
-import com.nhnacademy.coupon_server.entity.Coupon;
 import com.nhnacademy.coupon_server.entity.MemberCoupon;
-import com.nhnacademy.coupon_server.entity.state.Comment;
 import com.nhnacademy.coupon_server.entity.state.Status;
 import com.nhnacademy.coupon_server.repository.membercoupon.MemberCouponRepository;
 import jakarta.persistence.EntityManagerFactory;
@@ -19,7 +17,6 @@ import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDateTime;
@@ -32,9 +29,9 @@ public class CouponDeleteBatchConfig {
 
     private final EntityManagerFactory entityManagerFactory;
     private final MemberCouponRepository memberCouponRepository;
-    private final StringRedisTemplate redisTemplate;
     private static final int CHUNK_SIZE = 1000;
 
+    // Job 설정
     @Bean
     public Job deleteExpiredCouponJob(JobRepository jobRepository, Step deleteExpiredCouponStep) {
         return new JobBuilder("deleteExpiredCouponJob", jobRepository)
@@ -42,16 +39,18 @@ public class CouponDeleteBatchConfig {
                 .build();
     }
 
+    // Step 설정
     @Bean
     public Step deleteExpiredCouponStep(JobRepository jobRepository,
                                         PlatformTransactionManager transactionManager) {
         return new StepBuilder("deleteExpiredCouponStep", jobRepository)
                 .<MemberCoupon, MemberCoupon>chunk(CHUNK_SIZE, transactionManager)
-                .reader(expiredOrUsedCouponReader())
-                .writer(couponDeleteWriter())
+                .reader(expiredOrUsedCouponReader()) // Reader
+                .writer(couponDeleteWriter()) // Writer
                 .build();
     }
 
+    // Reader: 만료되었거나(ISSUED & 시간경과) 사용된(USED) 쿠폰 조회
     @Bean
     @StepScope
     public JpaPagingItemReader<MemberCoupon> expiredOrUsedCouponReader() {
@@ -59,6 +58,7 @@ public class CouponDeleteBatchConfig {
                 .name("expiredOrUsedCouponReader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(CHUNK_SIZE)
+                // JPQL을 사용하여 조건에 맞는 쿠폰 조회 (Fetch Join으로 연관 엔티티도 한 번에 로딩)
                 .queryString("SELECT mc FROM MemberCoupon mc " +
                         "JOIN FETCH mc.coupon c " +
                         "JOIN FETCH c.couponPolicy cp " +
@@ -71,28 +71,13 @@ public class CouponDeleteBatchConfig {
                 .build();
     }
 
+    // Writer: 조회된 쿠폰들을 삭제 및 재고 복구 처리
     @Bean
     public ItemWriter<MemberCoupon> couponDeleteWriter() {
         return items -> {
             log.info("삭제 대상 쿠폰 {}건 삭제 진행", items.size());
-            for (MemberCoupon coupon : items) {
-                if (coupon.getStatus().equals(Status.USED)) {
-                    restoreStockIfApplicable(coupon.getCoupon());
-                }
-            }
+            // DB에서 쿠폰 데이터 삭제
             memberCouponRepository.deleteAll(items);
         };
-    }
-
-    private void restoreStockIfApplicable(Coupon coupon) {
-        if (coupon.getIssueCount() == null) {
-            return;
-        }
-        Comment comment = coupon.getCouponPolicy().getComment();
-        if (comment == Comment.WELCOME || comment == Comment.BIRTHDAY) {
-            String countKey = "coupon:count" + coupon.getId();
-            redisTemplate.opsForValue().increment(countKey);
-            log.debug("만료 쿠폰 재고 복구 - CouponId: {}, Type: {}", coupon.getId(), comment);
-        }
     }
 }

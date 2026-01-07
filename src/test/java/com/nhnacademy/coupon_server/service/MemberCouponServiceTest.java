@@ -37,7 +37,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -517,28 +516,14 @@ public class MemberCouponServiceTest {
         Long userId = 1L;
         Long memberCouponId = 55L;
 
-        CouponPolicy couponPolicy = CouponPolicy.builder()
-                .comment(Comment.WELCOME) // 테스트 목적에 맞는 Comment 설정
-                .build();
-
-        Coupon coupon = Coupon.builder()
-                .id(100L)
-                .issueCount(100)
-                .couponPolicy(couponPolicy) // Policy 연결
-                .build();
-
         MemberCoupon mc = MemberCoupon.builder()
                 .id(memberCouponId)
                 .userId(userId)
-                .coupon(coupon)
                 .status(Status.ISSUED)
                 .expiredAt(LocalDateTime.now().plusDays(1))
                 .build();
 
         when(memberCouponRepository.findById(memberCouponId)).thenReturn(Optional.of(mc));
-
-        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         memberCouponService.useCoupon(userId, new MemberCouponUseRequestDto(memberCouponId, 123L));
 
