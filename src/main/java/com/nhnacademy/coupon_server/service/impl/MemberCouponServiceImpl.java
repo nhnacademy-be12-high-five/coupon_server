@@ -185,12 +185,17 @@ public class MemberCouponServiceImpl implements MemberCouponService {
     @Override
     @Transactional
     public void useCoupon(Long userId, MemberCouponUseRequestDto requestDto) {
-        log.info("[5. 쿠폰 사용 서비스 시작] UserID: {}, CouponID: {}", userId, requestDto.getCouponId());
        MemberCoupon memberCoupon = findAndValidateOwner(requestDto.getCouponId(), userId);
-
-        memberCoupon.use(requestDto.getOrderId());
-        log.info("[6. 쿠폰 상태 변경 완료] MemberCouponID: {}, 변경된 상태: {}, OrderID: {}",
-                memberCoupon.getId(), memberCoupon.getStatus(), requestDto.getOrderId());
+       memberCoupon.use(requestDto.getOrderId());
+       Coupon coupon = memberCoupon.getCoupon();
+       if (coupon.getIssueCount() != null) {
+           Comment couponType = coupon.getCouponPolicy().getComment();
+           if (couponType == Comment.BIRTHDAY || couponType == Comment.WELCOME) {
+               String countKey = "coupon:count:" + coupon.getId();
+               redisTemplate.opsForValue().increment(countKey);
+               log.info("쿠폰 사용으로 인한 재고 복구 완료 - CouponId: {}, Type: {}", coupon.getId(), couponType);
+           }
+       }
     }
 
     // [수정됨] 쿠폰 사용 취소
