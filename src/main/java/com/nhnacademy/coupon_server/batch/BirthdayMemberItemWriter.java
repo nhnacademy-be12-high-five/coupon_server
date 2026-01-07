@@ -37,21 +37,27 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
 
     private Coupon cachedBirthdayCoupon;
 
+    // Step 실행 전에 한 번 실행되는 메서드
     @BeforeStep
     public void beforeStep(StepExecution stepExecution) {
+        // 생일 쿠폰 정책을 DB에서 조회하여 캐싱
         this.cachedBirthdayCoupon = fetchBirthdayCoupon();
+        // 정책이 없으면 배치를 진행할 수 없으므로 예외 발생
         if (this.cachedBirthdayCoupon == null) {
             throw new IllegalStateException("활성화된 생일 쿠폰 정책을 찾을 수 없습니다.");
         }
     }
 
+    // 실제 쓰기 작업 (Chunk 단위로 실행됨)
     @Override
     public void write(Chunk<? extends Long> chunk) {
+        // Chunk에 있는 유저 ID 리스트 가져오기
         List<Long> userIds = new ArrayList<>(chunk.getItems());
 
         if (userIds.isEmpty()) return;
 
         // 1. [조회 최적화] 이미 발급받은 유저 ID 조회 (IN 절, 1회 쿼리)
+        // Loop를 돌며 확인하면 성능 저하가 발생하므로 한 번에 조회함
         List<Long> alreadyIssuedIds = memberCouponRepository.findUserIdsByCouponIdAndUserIdIn(
                 cachedBirthdayCoupon.getId(),
                 userIds
@@ -62,6 +68,7 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
                 .filter(id -> !alreadyIssuedIds.contains(id))
                 .toList();
 
+        // 발급 대상이 없으면 종료
         if (targetUserIds.isEmpty()) {
             log.info("이번 청크는 모두 이미 발급된 유저입니다. (Skip)");
             return;
@@ -81,13 +88,14 @@ public class BirthdayMemberItemWriter implements ItemWriter<Long> {
                         .build())
                 .toList();
 
-        // 4. [쓰기 최적화] Bulk Insert 수행 (1회 쿼리)
+        // 4. [쓰기 최적화] JDBC Template을 이용한 Bulk Insert 수행 (쿼리 1번으로 수천 건 저장)
         memberCouponJdbcRepository.batchInsertMemberCoupons(memberCoupons);
 
         log.info("Bulk Insert 완료: {}명 (중복 제외됨)", memberCoupons.size());
     }
-
+    // 생일 쿠폰 정책 조회 헬퍼 메서드
     private Coupon fetchBirthdayCoupon() {
+        // DB에서 COMMENT가 BIRTHDAY이고 상태가 ACTIVE인 쿠폰 조회 (최신순 1개)
         List<Coupon> coupons = couponRepository.findCouponsByCommentAndStatus(
                 Comment.BIRTHDAY,
                 CouponPolicyStatus.ACTIVE,
