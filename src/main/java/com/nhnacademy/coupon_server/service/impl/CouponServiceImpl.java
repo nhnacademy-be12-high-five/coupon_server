@@ -191,7 +191,7 @@ public class CouponServiceImpl implements CouponService {
 
         String countKey = COUPON_COUNT_KEY_PREFIX + coupon.getId();
         // 키가 없을 때만 복구 (이미 있으면 기존 수량 유지)
-        if (!redisTemplate.hasKey(countKey)) {
+        if (!Boolean.TRUE.equals(redisTemplate.hasKey(countKey))) {
             long issuedCount = memberCouponRepository.countByCouponId(coupon.getId());
             long remainingCount = Math.max(0, coupon.getIssueCount() - issuedCount);
 
